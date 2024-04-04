@@ -161,7 +161,7 @@ class PlayerManager:
         return all([player.is_ready for player in self.get_all_players()])
 
 
-class Server:
+class Game:
     def __init__(self, host: str, port: int):
         self.connection = None
         self.max_players = MAX_PLAYERS
@@ -179,7 +179,7 @@ class Server:
     def setup(self, host: str, port: int):
         # setup a non-blocking TCP socket
         self.connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # self.connection.setblocking(0)
+        self.connection.setblocking(0)
         self.connection.bind((host, port))
 
     def create_game(self, num_players: int, race_length: int):
@@ -210,30 +210,69 @@ class Server:
 
     def handle_registration(self, conn):
         # Receive the registration request
-        print(f"HERE")
-        data = conn.recv(1024)
-        print(f"Received data: {data}")
-        if data:
-            import json
+        readable, _, _ = select.select([conn], [], [], 1)
+        if readable:
+            # Receive the registration request
+            data = conn.recv(1024)
+            print(f"Received data: {data}")
+            if data:
+                import json
 
-            # Decode the data from bytes to a string
-            data_str = data.decode("utf-8")
+                # Decode the data from bytes to a string
+                data_str = data.decode("utf-8")
 
-            # Parse the string as JSON
-            data_json = json.loads(data_str)
+                # Parse the string as JSON
+                data_json = json.loads(data_str)
 
-            # Extract the "name" field from the JSON object
-            nickname = data_json["name"]
-            player = self.player_manager.register_player(nickname)
-            if player:
-                print(f"Player {nickname} registered successfully.")
-                conn.sendall(b"Registration successful.")
-            else:
-                print(f"Registration failed for nickname: {nickname}")
-                conn.sendall(b"Registration failed.")
-        conn.close()
+                # Extract the "name" field from the JSON object
+                nickname = data_json["name"]
+                player = self.player_manager.register_player(nickname)
+                if player:
+                    print(f"Player {nickname} registered successfully.")
+                    conn.sendall(b"Registration successful.")
+                else:
+                    print(f"Registration failed for nickname: {nickname}")
+                    conn.sendall(b"Registration failed.")
+        else:
+            # retry
+            self.handle_registration(conn)
+        # conn.close()
+
+
+import asyncio, zen_utils
+
+
+class Server(asyncio.Protocol):
+    def connection_made(self, transport):
+        self.transport = transport
+        self.address = transport.get_extra_info("peername")
+        self.data = b""
+        print("Accepted connection from {}".format(self.address))
+
+    def data_received(self, data):
+        self.data += data
+        if b"\r\n\r\n" in self.data:
+
+            answer = zen_utils.get_answer(self.data)
+            self.transport.write(answer)
+            self.data = b""
+
+    def connection_lost(self, exc):
+        if exc:
+            print("Client {} error: {}".format(self.address, exc))
+        elif self.data:
+            print("Client {} sent {} but then closed".format(self.address, self.data))
+        else:
+            print("Client {} closed socket".format(self.address))
 
 
 if __name__ == "__main__":
-    server = Server("localhost", 12345)
-    server.run()
+    loop = asyncio.get_event_loop()
+    coro = loop.create_server(ZenServer, ("localhost", 12345))
+    server = loop.run_until_complete(coro)
+    print("Listening at {}".format(address))
+    try:
+        loop.run_forever()
+    finally:
+        server.close()
+        loop.close()
