@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict, Tuple
 import random
 import time
 import re
@@ -11,12 +11,12 @@ MAX_PLAYERS = 10
 MIN_PLAYERS = 2
 MAX_RACE_LENGTH = 25
 MIN_RACE_LENGTH = 4
-ANSWER_TIME_LIMIT = 10
+ANSWER_TIME_LIMIT = 3
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    datefmt="%m/%d/%Y %I:%M:%S %p",
+    format="%(asctime)s %(message)s",
+    datefmt="%m/%d/%Y %H:%M:%S",
 )
 LOGGER = logging.getLogger(__name__)
 
@@ -30,32 +30,32 @@ class WrongStateError(Exception):
 
 
 class Player:
-    def __init__(self, nickname):
-        self.nickname = nickname
-        self.answer = None
-        self.answer_time = None
-        self.diff_points = 0
-        self.position = 1
-        self.wa_streak = 0
-        self.is_ready = False
-        self.is_disqualified = False
+    def __init__(self, nickname: str):
+        self.nickname: str = nickname
+        self.answer: Optional[str] = None
+        self.answer_time: Optional[float] = None
+        self.diff_points: int = 0
+        self.position: int = 1
+        self.wa_streak: int = 0
+        self.is_ready: bool = False
+        self.is_disqualified: bool = False
 
-    def ready(self):
+    def ready(self) -> None:
         self.is_ready = True
 
-    def unready(self):
+    def unready(self) -> None:
         self.is_ready = False
 
-    def disqualify(self):
+    def disqualify(self) -> None:
         self.is_disqualified = True
 
-    def reset_new_round(self):
+    def reset_new_round(self) -> None:
         self.answer = None
         self.answer_time = None
         self.diff_points = 0
 
-    def update_state(self, received_points):
-        tmp = self.position
+    def update_state(self, received_points: int) -> None:
+        tmp: int = self.position
         self.position += received_points
         self.position = max(1, self.position)
         self.diff_points = self.position - tmp
@@ -65,30 +65,25 @@ class Question:
     def __init__(
         self, first_number: int, second_number: int, operator: str, answer: int
     ):
-        self.first_number = first_number
-        self.second_number = second_number
-        self.operator = operator
-        self.answer = answer
+        self.first_number: int = first_number
+        self.second_number: int = second_number
+        self.operator: str = operator
+        self.answer: int = answer
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.first_number};{self.operator};{self.second_number}"
 
 
 class QuestionManager:
     def __init__(self):
-        self.questions = []
-        # TODO
-        # self.operators = ["+", "-", "*", "/", "%"]
-        self.operators = ["+", "-", "*", "%"]
+        self.operators: List[str] = ["+", "-", "*", "/", "%"]
 
-    def generate_question(self):
-        # TODO
-        # first_number = random.randint(-10000, 10000)
-        # second_number = random.randint(-10000, 10000)
-        first_number = random.randint(1, 10)
-        second_number = random.randint(1, 10)
-        operator = random.choice(self.operators)
+    def generate_question(self) -> Question:
+        first_number: int = random.randint(-10000, 10000)
+        second_number: int = random.randint(-10000, 10000)
+        operator: str = random.choice(self.operators)
 
+        answer: int = 0
         if operator == "+":
             answer = first_number + second_number
         elif operator == "-":
@@ -100,19 +95,19 @@ class QuestionManager:
             answer = first_number // second_number
         elif operator == "%":
             answer = first_number % second_number
+        else:
+            raise ValueError("Invalid operator.")
 
-        question = Question(first_number, second_number, operator, answer)
+        return Question(first_number, second_number, operator, answer)
 
-        return question
-
-    def check_player_answer(self, question: Question, player_answer: int):
+    def check_player_answer(self, question: Question, player_answer: int) -> bool:
         return question.answer == player_answer
 
 
 class PlayerManager:
     def __init__(self, max_players: int):
-        self.max_players = max_players
-        self.players = {}
+        self.max_players: int = max_players
+        self.players: Dict[str, Player] = {}
 
     def check_valid_nickname(self, nickname: str) -> bool:
         return bool(re.match(r"^[a-zA-Z0-9_]{1,10}$", nickname))
@@ -131,11 +126,11 @@ class PlayerManager:
         self.players[player.nickname] = player
         return player
 
-    def remove_player(self, nickname: str) -> bool:
+    def remove_player(self, nickname: str) -> None:
         del self.players[nickname]
 
     def disqualify_players(self) -> List[Player]:
-        disqualified_players = []
+        disqualified_players: List[Player] = []
         for player in self.players.values():
             if player.wa_streak >= 3:
                 player.disqualify()
@@ -183,21 +178,21 @@ class GameState(Enum):
 
 class Game:
     def __init__(self, max_players: int, race_length: int):
-        self.race_length = race_length
-        self.max_players = max_players
+        self.race_length: int = race_length
+        self.max_players: int = max_players
         self.reset_game()
 
-    def reset_game(self):
-        self.player_manager = PlayerManager(max_players=self.max_players)
-        self.question_manager = QuestionManager()
-        self.state = GameState.LOBBY
+    def reset_game(self) -> None:
+        self.player_manager: PlayerManager = PlayerManager(self.max_players)
+        self.question_manager: QuestionManager = QuestionManager()
+        self.state: GameState = GameState.LOBBY
 
     def handle_registration(self, nickname: str) -> Player:
         if self.state != GameState.LOBBY:
             raise WrongStateError("Cannot register. Game has already started.")
         return self.player_manager.register_player(nickname)
 
-    async def handle_ready(self, nickname: str):
+    async def handle_ready(self, nickname: str) -> None:
         if self.state != GameState.LOBBY:
             raise WrongStateError("Cannot ready up. Game has already started.")
 
@@ -210,33 +205,33 @@ class Game:
             )
             asyncio.create_task(game.game_loop())
 
-    def handle_unready(self, nickname: str):
+    def handle_unready(self, nickname: str) -> None:
         if self.state != GameState.LOBBY:
             raise WrongStateError("Cannot unready. Game has already started.")
 
         self.player_manager.players[nickname].unready()
 
-    def handle_answer(self, nickname: str, answer: int):
+    def handle_answer(self, nickname: str, answer: int) -> None:
         if self.state != GameState.WAITING_FOR_ANSWERS:
             raise WrongStateError("Not in answering phase.")
-        LOGGER.info(f"[Game] {nickname} answered: {answer}.")
+        LOGGER.info(f"[Game Thread] {nickname} answered: {answer}.")
 
-        player = self.player_manager.players[nickname]
+        player: Player = self.player_manager.players[nickname]
         player.answer = answer
         player.answer_time = time.time()
 
-    async def handle_disconnection(self, nickname: str):
+    async def handle_disconnection(self, nickname: str) -> None:
         if self.state == GameState.LOBBY:
             self.player_manager.remove_player(nickname)
             await client.broadcast(f"PLAYER_LEFT;{nickname}")
         else:
-            player = self.player_manager.players[nickname]
+            player: Player = self.player_manager.players[nickname]
             player.disqualify()
             await client.broadcast(f"PLAYER_LEFT;{nickname}")
 
-    def is_over(self) -> tuple[bool, Optional[Player]]:
-        is_over = False
-        qualified_players = self.player_manager.get_qualified_players()
+    def is_over(self) -> Tuple[bool, Optional[Player]]:
+        is_over: bool = False
+        qualified_players: List[Player] = self.player_manager.get_qualified_players()
         if len(qualified_players) <= 1:
             is_over = True
         else:
@@ -246,7 +241,7 @@ class Game:
                     break
 
         if is_over:
-            winner = None
+            winner: Optional[Player] = None
             for player in qualified_players:
                 if winner is None:
                     winner = player
@@ -262,36 +257,36 @@ class Game:
         return is_over, None
 
     async def game_loop(self):
-        round_index = 0
+        round_index: int = 0
         while self.state != GameState.LOBBY:
             round_index += 1
-            LOGGER.info(f"[Game] Starting round {self.round_index}.")
+            LOGGER.info(f"[Game Thread] Starting round {round_index}.")
 
             # Generate a new question
             for player in self.player_manager.get_qualified_players():
                 player.reset_new_round()
 
-            question = self.question_manager.generate_question()
+            question: Question = self.question_manager.generate_question()
             LOGGER.info(
-                f"[Game] question #{self.round_index}: {question}, answer: {question.answer}."
+                f"[Game Thread] Question #{round_index}: {question.first_number} {question.operator} {question.second_number} = {question.answer}."
             )
 
             # Send the question to all clients
-            await client.broadcast(f"QUESTION;{self.round_index};{question}")
+            await client.broadcast(f"QUESTION;{round_index};{question}")
 
             self.state = GameState.WAITING_FOR_ANSWERS
-            LOGGER.info("[Game] State changed: WAITING_FOR_ANSWERS.")
+            LOGGER.info("[Game Thread] State changed: WAITING_FOR_ANSWERS.")
             # Wait for the clients to answer
             await asyncio.sleep(ANSWER_TIME_LIMIT)
 
             self.state = GameState.PROCESSING
-            LOGGER.info("[Game] State changed: PROCESSING.")
+            LOGGER.info("[Game Thread] State changed: PROCESSING.")
             # Process the answers and update the scores
-            fastest_player = None
-            fastest_bonus = 0
+            fastest_player: Optional[Player] = None
+            fastest_bonus: int = 0
             for player in self.player_manager.get_qualified_players():
-                nickname = player.nickname
-                answer = player.answer
+                nickname: str = player.nickname
+                answer: Optional[int] = player.answer
 
                 if self.question_manager.check_player_answer(question, answer):
                     # Correct answer
@@ -305,7 +300,7 @@ class Game:
                     ):
                         fastest_player = player
                     LOGGER.info(
-                        f"[Game] {nickname} answered correctly, position: {player.position}."
+                        f"[Game Thread] {nickname} answered correctly, position: {player.position}."
                     )
                 else:
                     # Incorrect answer
@@ -315,97 +310,111 @@ class Game:
                     fastest_bonus += 1
                     await client.write_to_player(nickname, "ANSWER_INCORRECT")
                     LOGGER.info(
-                        f"[Game] {nickname} answered incorrectly, position: {player.position}."
+                        f"[Game Thread] {nickname} answered incorrectly, position: {player.position}."
                     )
 
             # Add bonus score for the fastest player
             if fastest_player is not None:
                 fastest_player.update_state(fastest_bonus)
                 LOGGER.info(
-                    f"[Game] Fastest player: {fastest_player.nickname}, bonus: {fastest_bonus}."
+                    f"[Game Thread] Fastest player: {fastest_player.nickname}, bonus: {fastest_bonus}."
                 )
 
             # Disqualify players with consecutive wrong answers
-            disqualified_players = self.player_manager.disqualify_players()
+            disqualified_players: List[Player] = (
+                self.player_manager.disqualify_players()
+            )
             if disqualified_players:
                 disqualified_players = ";".join(
-                    str(player) for player in disqualified_players
+                    player.nickname for player in disqualified_players
                 )
-                await client.broadcast(f"NOTIFICATION;{disqualified_players}")
-                LOGGER.info(f"[Game] Disqualified players: {disqualified_players}.")
+                await client.broadcast(f"DISQUALIFICATION;{disqualified_players}")
+                LOGGER.info(
+                    f"[Game Thread] Disqualified players: {disqualified_players}."
+                )
 
             # Send the updated scores to all clients
-            scores = self.player_manager.pack_players_round_info()
+            scores: str = self.player_manager.pack_players_round_info()
             await client.broadcast(f"SCORES;{scores}")
 
             # Check if the game is over
+            is_over: bool
+            winner: Optional[Player]
             is_over, winner = self.is_over()
             if is_over:
                 await client.broadcast("GAME_OVER")
                 if winner is not None:
                     await client.broadcast(f"WINNER;{winner.nickname}")
-                    LOGGER.info(f"[Game] Game over. Winner is {winner.nickname}.")
+                    LOGGER.info(
+                        f"[Game Thread] Game over. Winner is {winner.nickname}."
+                    )
                 else:
                     await client.broadcast("WINNER;")
-                    LOGGER.info("[Game] Game over. No winner.")
+                    LOGGER.info("[Game Thread] Game over. No winner.")
                 self.reset_game()
                 client.reset_clients()
 
 
 class ClientManager:
     def __init__(self):
+        self.clients: Dict[asyncio.StreamWriter, str] = {}
+
+    def reset_clients(self) -> None:
         self.clients = {}
 
-    def reset_clients(self):
-        self.clients = {}
-
-    async def broadcast(self, message, except_nicknames=[]):
-        byte_message = (message + "\n").encode()
+    async def broadcast(self, message: str, except_nicknames: List[str] = []) -> None:
+        byte_message: bytes = (message + "\n").encode()
         for client in self.clients:
             if self.clients[client] not in except_nicknames:
                 client.write(byte_message)
                 await client.drain()  # Ensure the message is sent before continuing
 
-    async def write_to_player(self, nickname, message):
+    async def write_to_player(self, nickname: str, message: str) -> None:
         if nickname not in game.player_manager.players:
             return
-        byte_message = (message + "\n").encode()
-        writer = game.player_manager.players[nickname].writer
+        byte_message: bytes = (message + "\n").encode()
+        writer: asyncio.StreamWriter = game.player_manager.players[nickname].writer
         writer.write(byte_message)
         await writer.drain()
 
-    async def handle_conversation(self, reader, writer):
+    async def handle_conversation(
+        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
+    ) -> None:
         try:
-            address = writer.get_extra_info("peername")
-            LOGGER.info(f"[Client] Accepted connection from {address}.")
+            address: Tuple[str, int] = writer.get_extra_info("peername")
+            LOGGER.info(f"[Client Thread] Accepted connection from {address}.")
             while True:
-                data = await reader.readline()
+                data: bytes = await reader.readline()
                 if not data:
                     break
-                message = data.decode().strip()
+                message: str = data.decode().strip()
+                command: str
+                args: List[str]
                 command, *args = message.split(";")
                 command = command.upper()
 
-                LOGGER.info(f"[Client] Received message from {address}: {message}")
+                LOGGER.info(
+                    f"[Client Thread] Received message from {address}: {message}"
+                )
 
                 if command == "REGISTER":
                     # Parse message data
-                    nickname = args[0].strip()
+                    nickname: str = args[0].strip()
 
                     # Handle command
                     try:
                         if writer in self.clients:
                             raise RegistrationError("You have already registered.")
 
-                        player = game.handle_registration(nickname)
-                        player.writer = writer
+                        player: Player = game.handle_registration(nickname)
+                        player.writer: asyncio.StreamWriter = writer
                         self.clients[writer] = nickname
 
                         writer.write(
                             f"REGISTRATION_SUCCESS;{game.player_manager.pack_players_lobby_info()}\n".encode()
                         )
                         await client.broadcast(f"PLAYER_JOINED;{nickname}")
-                        LOGGER.info(f"[Client] Registered as {nickname}")
+                        LOGGER.info(f"[Client Thread] Registered as {nickname}")
 
                     except RegistrationError as e:
                         writer.write(f"REGISTRATION_FAILURE;{str(e)}\n".encode())
@@ -415,11 +424,11 @@ class ClientManager:
                 elif command == "READY":
                     try:
                         # Handle command
-                        nickname = self.clients[writer]
+                        nickname: str = self.clients[writer]
                         await game.handle_ready(nickname)
 
                         await client.broadcast(f"PLAYER_READY;{nickname}")
-                        LOGGER.info(f"[Client] {nickname} is ready.")
+                        LOGGER.info(f"[Client Thread] {nickname} is ready.")
 
                     except WrongStateError as e:
                         writer.write(f"READY_FAILURE;{str(e)}\n".encode())
@@ -427,39 +436,41 @@ class ClientManager:
                 elif command == "UNREADY":
                     try:
                         # Handle command
-                        nickname = self.clients[writer]
+                        nickname: str = self.clients[writer]
                         game.handle_unready(nickname)
 
                         await client.broadcast(f"PLAYER_UNREADY:{nickname}")
-                        LOGGER.info(f"[Client] {nickname} is unready.")
+                        LOGGER.info(f"[Client Thread] {nickname} is unready.")
 
                     except WrongStateError as e:
                         writer.write(f"UNREADY_FAILURE;{str(e)}\n".encode())
 
                 elif command == "ANSWER":
                     try:
-                        player_answer = int(args[0].strip())
+                        player_answer: int = int(args[0].strip())
 
                         # Handle command
-                        nickname = self.clients[writer]
+                        nickname: str = self.clients[writer]
                         game.handle_answer(nickname, player_answer)
-                        LOGGER.info(f"[Client] {nickname} answered: {player_answer}.")
+                        LOGGER.info(
+                            f"[Client Thread] {nickname} answered: {player_answer}."
+                        )
 
                     except WrongStateError as e:
                         writer.write(f"ANSWER_FAILURE;{str(e)}\n".encode())
 
                 await writer.drain()
         except ConnectionResetError as e:
-            LOGGER.info(f"[Client] Connection reset by peer, address {address}.")
+            LOGGER.info(f"[Client Thread] Connection reset by peer, address {address}.")
         finally:
-            nickname = self.clients[writer]
+            nickname: str = self.clients[writer]
             del self.clients[writer]
             await game.handle_disconnection(nickname)
             writer.close()
 
 
-game = Game(10, 3)
-client = ClientManager()
+game: Game = Game(10, 3)
+client: ClientManager = ClientManager()
 
 
 if __name__ == "__main__":
