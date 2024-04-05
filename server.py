@@ -384,6 +384,7 @@ class ClientManager:
                 LOGGER.info(f"[Client] Received message from {address}: {message}")
 
                 if command == "REGISTER":
+                    # TODO: send all registered players + ready status to the new player
                     # Parse message data
                     nickname = args[0].strip()
 
