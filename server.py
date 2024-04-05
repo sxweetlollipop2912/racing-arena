@@ -148,7 +148,12 @@ class PlayerManager:
     def get_readied_players(self) -> List[Player]:
         return [player for player in self.players.values() if player.is_ready]
 
-    def pack_players_info(self) -> str:
+    def pack_players_lobby_info(self) -> str:
+        return ";".join(
+            [f"{player.nickname},{player.is_ready}" for player in self.players.values()]
+        )
+
+    def pack_players_round_info(self) -> str:
         return ";".join(
             [
                 f"{player.nickname},{player.diff_points},{player.position}"
@@ -330,7 +335,7 @@ class Game:
                 LOGGER.info(f"[Game] Disqualified players: {disqualified_players}.")
 
             # Send the updated scores to all clients
-            scores = self.player_manager.pack_players_info()
+            scores = self.player_manager.pack_players_round_info()
             await client.broadcast(f"SCORES;{scores}")
 
             # Check if the game is over
@@ -384,7 +389,6 @@ class ClientManager:
                 LOGGER.info(f"[Client] Received message from {address}: {message}")
 
                 if command == "REGISTER":
-                    # TODO: send all registered players + ready status to the new player
                     # Parse message data
                     nickname = args[0].strip()
 
@@ -397,7 +401,9 @@ class ClientManager:
                         player.writer = writer
                         self.clients[writer] = nickname
 
-                        writer.write(b"REGISTRATION_SUCCESS\n")
+                        writer.write(
+                            f"REGISTRATION_SUCCESS;{game.player_manager.pack_players_lobby_info()}\n".encode()
+                        )
                         await client.broadcast(f"PLAYER_JOINED;{nickname}")
                         LOGGER.info(f"[Client] Registered as {nickname}")
 
