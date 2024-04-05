@@ -14,36 +14,33 @@ MIN_RACE_LENGTH = 4
 class Player:
     def __init__(self, nickname):
         self.nickname = nickname
-        self.score = 0
+        self.answer = None
+        self.answer_time = None
+        self.diff_points = 0
         self.position = 0
-        self.consecutive_wa = 0
+        self.wa_streak = 0
         self.is_ready = False
         self.is_disqualified = False
-        self.last_position = -1
+
+    def ready(self):
+        self.is_ready = True
+
+    def unready(self):
+        self.is_ready = False
 
     def disqualify(self):
         self.is_disqualified = True
 
-    def reset(self):
-        self.score = 0
-        self.position = 0
-        self.consecutive_wa = 0
-        self.is_ready = False
-        self.is_disqualified = False
-        self.last_position = -1
+    def reset_new_round(self):
+        self.answer = None
+        self.answer_time = None
+        self.diff_points = 0
 
-    def __str__(self):
-        return f"Player {self.nickname} - {self.score} points"
-
-    def __repr__(self):
-        return f"Player {self.nickname} - {self.score} points"
-
-    def update_position(self, value):
-        self.position += value
+    def update_state(self, received_points):
+        tmp = self.position
+        self.position += received_points
         self.position = max(0, self.position)
-
-    def update_score(self, value):
-        self.score += value
+        self.diff_points = self.position - tmp
 
 
 class Question:
@@ -56,10 +53,7 @@ class Question:
         self.answer = answer
 
     def __str__(self):
-        return f"Question: {self.first_number} {self.operator} {self.second_number} = {self.answer}"
-
-    def __repr__(self):
-        return f"Question: {self.first_number} {self.operator} {self.second_number} = {self.answer}"
+        return f"{self.first_number};{self.operator};{self.second_number}"
 
 
 class QuestionManager:
@@ -79,108 +73,100 @@ class QuestionManager:
         elif operator == "*":
             answer = first_number * second_number
         elif operator == "/":
+            # TODO: What if the second number is 0?
             answer = first_number // second_number
         elif operator == "%":
             answer = first_number % second_number
 
         question = Question(first_number, second_number, operator, answer)
-        self.questions.append(question)
 
         return question
 
-    def check_answer(self, question: Question, answer: int):
-        return question.answer == answer
+    def check_player_answer(self, question: Question, player_answer: int):
+        return question.answer == player_answer
 
 
-class Timer:
-    def __init__(self):
-        self.start_time = None
-        self.end_time = None
-
-    def start(self):
-        self.start_time = time.time()
-
-    def stop(self):
-        self.end_time = time.time()
-
-    def get_elapsed_time(self):
-        return self.end_time - self.start_time
-
-    def reset(self):
-        self.start_time = None
-        self.end_time = None
+class RegistrationError(Exception):
+    pass
 
 
 class PlayerManager:
-    def __init__(self, min_players: int, max_players: int):
-        self.min_players = min_players
+    def __init__(self, max_players: int):
         self.max_players = max_players
-        self.players = []
+        self.players = {}
 
     def check_valid_nickname(self, nickname: str) -> bool:
         return bool(re.match(r"^[a-zA-Z0-9_]{1,10}$", nickname))
 
     def check_existed_nickname(self, nickname: str) -> bool:
-        return nickname in [player.nickname for player in self.players]
+        return nickname in self.players
 
     def register_player(self, nickname: str) -> Player:
-        if self.check_valid_nickname(nickname):
-            player = Player(nickname)
-            self.players.append(player)
-            return player
-        return None
+        if len(self.players) >= self.max_players:
+            raise RegistrationError("Lobby is full.")
+        if not self.check_valid_nickname(nickname):
+            raise RegistrationError("Invalid nickname.")
+        if self.check_existed_nickname(nickname):
+            raise RegistrationError("Nickname already exists.")
+        player = Player(nickname)
+        self.players[player.nickname] = player
+        return player
 
-    def add_player(self, player: Player) -> bool:
-        if len(self.players) < self.max_players:
-            self.players.append(player)
-            return True
-        return False
+    def remove_player(self, nickname: str) -> bool:
+        del self.players[nickname]
 
-    def remove_player(self, player: Player) -> bool:
-        self.players.remove(player)
+    def disqualify_players(self) -> List[Player]:
+        disqualified_players = []
+        for player in self.players.values():
+            if player.wa_streak >= 3:
+                player.disqualify()
+                disqualified_players.append(player)
+        return disqualified_players
 
-    def disqualify_player(self, player: Player):
-        player.disqualify()
-        broadcast(f"{player.nickname} has been disqualified.")
+    def get_all_players(self) -> List[Player]:  # all registered players
+        return list(self.players.values())
 
-    def get_all_players(self) -> List[Player]:  # all players in the room
-        return self.players
+    def get_readied_players(self) -> List[Player]:
+        return [player for player in self.players.values() if player.is_ready]
 
-    def get_readied_players(
-        self,
-    ) -> List[Player]:  # players who pressed the ready button
-        return [player for player in self.players if player.is_ready]
+    def pack_players_info(self) -> str:
+        return ";".join(
+            [
+                f"{player.nickname},{player.score},{player.position}"
+                for player in self.players.values()
+            ]
+        )
 
-    def get_eligible_players(self) -> List[Player]:  # players who are not disqualified
-        return [player for player in self.players if not player.is_disqualified]
+    def get_qualified_players(self) -> List[Player]:  # players who are not disqualified
+        return [
+            player for player in self.players.values() if not player.is_disqualified
+        ]
 
     def can_start_game(self) -> bool:
-        return len(self.get_all_players()) >= self.min_players
+        return len(self.get_all_players()) <= self.max_players and all(
+            player.is_ready for player in self.get_all_players()
+        )
 
-    def check_all_ready(self) -> bool:
-        return all([player.is_ready for player in self.get_all_players()])
+
+class GameState(Enum):
+    # LOBBY: accept REGISTER, READY, UNREADY
+    LOBBY = 1
+    # PROCESSING: will not accept any command
+    PROCESSING = 2
+    # WAITING_FOR_ANSWERS: accept ANSWER
+    WAITING_FOR_ANSWERS = 3
 
 
 class Game:
-    def __init__(self, host: str, port: int):
-        self.connection = None
-        self.max_players = MAX_PLAYERS
-        self.min_players = MIN_PLAYERS
-        self.max_race_length = MAX_RACE_LENGTH
-        self.min_race_length = MIN_RACE_LENGTH
+    def __init__(self, max_players: int, race_length: int):
+        self.max_players = max_players
+        self.race_length = race_length
 
-        self.player_manager = PlayerManager(
-            min_players=self.min_players, max_players=self.max_players
-        )
+        self.player_manager = PlayerManager(max_players=self.max_players)
         self.question_manager = QuestionManager()
         self.timer = Timer()
         self.setup(host, port)
-
-    def setup(self, host: str, port: int):
-        # setup a non-blocking TCP socket
-        self.connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.connection.setblocking(0)
-        self.connection.bind((host, port))
+        self.state = GameState.LOBBY
 
     def create_game(self, num_players: int, race_length: int):
         pass
@@ -188,87 +174,148 @@ class Game:
     def run_game(self):
         pass
 
-    def receive_message(self):
-        pass
-
-    def severe_all_connections(self):
-        pass
-
     def broadcast(self, message: str):
         pass
 
-    def run(self):
-        print(f"Server is running on localhost:12345")
-        self.connection.listen(1)
+    def handle_registration(self, nickname) -> Player:
+        self.player_manager.register_player(nickname)
+
+
+clients = {}
+game = Game()
+
+
+async def game_loop():
+    while game.state != GameState.GAME_OVER:
+        # Generate a new question
+        question = game.question_manager.generate_question()
+
+        # Send the question to all clients
+        await broadcast(f"QUESTION;{question}\n".encode())
+
+        game.state = GameState.WAITING_FOR_ANSWERS
+        # Wait for 5 seconds for the clients to answer
+        await asyncio.sleep(5)
+        game.state = GameState.FINISHED
+
+        # Process the answers and update the scores
+        for client, player in clients.items():
+            answer = player.answer  # assuming you have a way to get the player's answer
+            if game.question_manager.check_answer(question, answer):
+                player.update_score(1)  # assuming correct answers are worth 1 point
+                await client.write(b"ANSWER_CORRECT\n")
+            else:
+                await client.write(b"ANSWER_INCORRECT\n")
+
+        # Send the updated scores to all clients
+        scores = game.player_manager.create_players_info_message()
+        await broadcast(f"SCORES;{scores}\n".encode())
+
+        # Check if the game is over
+        if game.is_over():  # assuming you have a way to check if the game is over
+            game.state = GameState.GAME_OVER
+            await broadcast(b"GAME_OVER\n")
+
+
+async def handle_conversation(reader, writer):
+    try:
+        address = writer.get_extra_info("peername")
+        print("Accepted connection from {}".format(address))
         while True:
-            # Use select to wait for a connection
-            readable, _, _ = select.select([self.connection], [], [], 1)
-            if readable:
-                conn, addr = self.connection.accept()
-                print(f"Connection from {addr}")
-                self.handle_registration(conn)
+            data = await reader.readline()
+            message = data.decode().strip()
+            command, *args = message.split(";")
 
-    def handle_registration(self, conn):
-        # Receive the registration request
-        readable, _, _ = select.select([conn], [], [], 1)
-        if readable:
-            # Receive the registration request
-            data = conn.recv(1024)
-            print(f"Received data: {data}")
-            if data:
-                import json
+            if command == "REGISTER":
+                # Register can only be called in the LOBBY state
+                if game.state != GameState.LOBBY:
+                    await writer.write(
+                        b"REGISTRATION_FAILURE;A game has already started\n"
+                    )
+                    continue
 
-                # Decode the data from bytes to a string
-                data_str = data.decode("utf-8")
+                # Parse message data
+                nickname = args[0]
 
-                # Parse the string as JSON
-                data_json = json.loads(data_str)
+                # Handle command
+                try:
+                    player = game.player_manager.register_player(nickname)
+                    clients[writer] = player
+                    await writer.write(b"REGISTRATION_SUCCESS\n")
+                except RegistrationError as e:
+                    await writer.write(f"REGISTRATION_FAILURE;{str(e)}\n".encode())
 
-                # Extract the "name" field from the JSON object
-                nickname = data_json["name"]
-                player = self.player_manager.register_player(nickname)
-                if player:
-                    print(f"Player {nickname} registered successfully.")
-                    conn.sendall(b"Registration successful.")
-                else:
-                    print(f"Registration failed for nickname: {nickname}")
-                    conn.sendall(b"Registration failed.")
-        else:
-            # retry
-            self.handle_registration(conn)
-        # conn.close()
+            elif command == "READY":
+                # Ready can only be called in the LOBBY state
+                if game.state != GameState.LOBBY:
+                    await writer.write(b"READY_FAILURE;A game has already started\n")
+                    continue
+
+                # Parse message data
+                # Handle command
+                player = game.clients[writer]
+                player.is_ready = True
+                broadcast(f"PLAYER_JOINED:{player.nickname}".encode())
+                if game.check_all_ready():
+                    game.state = GameState.STARTING
+                    broadcast(
+                        f"GAME_STARTING:{game.get_race_length()}:{game.wait_time}".encode()
+                    )
+                    asyncio.create_task(game_loop())
+
+            elif command == "UNREADY":
+                # Unready can only be called in the LOBBY state
+                if game.state != GameState.LOBBY:
+                    await writer.write(b"UNREADY_FAILURE;A game has already started\n")
+                    continue
+                # Parse message data
+                # Handle command
+                player = game.clients[writer]
+                player.is_ready = True
+                broadcast(f"PLAYER_LEFT:{player.nickname}".encode())
+                pass
+
+            elif command == "ANSWER":
+                # Answer can only be called in the IN_PROGRESS state
+                if game.state != GameState.IN_PROGRESS:
+                    await writer.write(b"ANSWER_FAILURE;No game is in progress\n")
+                    continue
+
+                # Parse message data
+                if len(args) != 1:
+                    await writer.write(b"ANSWER_FAILURE;Invalid number of arguments\n")
+                    continue
+                player_answer = args[0]
+
+                # Handle command
+                player = game.clients[writer]
+                question = game.current_question
+                if game.question_manager.check_answer(question, player_answer):
+                    player.update_score(1)
+                    player.consecutive_wa = 0
+                    player.update_position(1)
+
+                pass
+
+            await writer.drain()
+    finally:
+        del clients[writer]
+        # TODO
+        # game.player_manager.remove_player(player)
+        writer.close()
+        await writer.wait_closed()
 
 
-import asyncio, zen_utils
-
-
-class Server(asyncio.Protocol):
-    def connection_made(self, transport):
-        self.transport = transport
-        self.address = transport.get_extra_info("peername")
-        self.data = b""
-        print("Accepted connection from {}".format(self.address))
-
-    def data_received(self, data):
-        self.data += data
-        if b"\r\n\r\n" in self.data:
-
-            answer = zen_utils.get_answer(self.data)
-            self.transport.write(answer)
-            self.data = b""
-
-    def connection_lost(self, exc):
-        if exc:
-            print("Client {} error: {}".format(self.address, exc))
-        elif self.data:
-            print("Client {} sent {} but then closed".format(self.address, self.data))
-        else:
-            print("Client {} closed socket".format(self.address))
+async def broadcast(message):
+    for client in clients:
+        client.write(message)
+        await client.drain()  # Ensure the message is sent before continuing
 
 
 if __name__ == "__main__":
+    address = ("127.0.0.1", 54321)
     loop = asyncio.get_event_loop()
-    coro = loop.create_server(ZenServer, ("localhost", 12345))
+    coro = asyncio.start_server(handle_conversation, *address)
     server = loop.run_until_complete(coro)
     print("Listening at {}".format(address))
     try:

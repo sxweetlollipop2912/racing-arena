@@ -39,7 +39,7 @@ import pygame_gui
 
 # Scene classes
 class Scene:
-    def __init__(self):
+    def __init__(self, scene_manager):
         pass
 
     def process_input(self, events):
@@ -53,8 +53,8 @@ class Scene:
 
 
 class TitleScene(Scene):
-    def __init__(self, server_host, server_port):
-        super().__init__()
+    def __init__(self, scene_manager, server_host, server_port):
+        super().__init__(scene_manager)
 
         self.client = Client(server_host, server_port)
         self.client.connect_to_server()
@@ -81,7 +81,7 @@ class TitleScene(Scene):
         )
 
         # Submit button
-        self.button = pygame_gui.elements.UIButton(
+        self.button_submit = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect((350, 400), (100, 50)),
             text="Submit",
             manager=self.manager,
@@ -91,7 +91,7 @@ class TitleScene(Scene):
         for event in events:
             if event.type == pygame.USEREVENT:
                 if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
-                    if event.ui_element == self.button:
+                    if event.ui_element == self.button_submit:
                         username = self.text_entry.get_text()
                         if not username.isalnum() and "_" not in username:
                             print(
@@ -104,7 +104,9 @@ class TitleScene(Scene):
                             success = self.client.register_nickname(username)
                             print(success)
                             if success:
-                                return GameScene()  # Switch to the game scene
+                                self.scene_manager.current_scene = GameScene(
+                                    self.scene_manager
+                                )
                             else:
                                 print("Registration failed.")
 
@@ -121,8 +123,8 @@ class TitleScene(Scene):
 
 
 class GameScene(Scene):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, scene_manager):
+        super().__init__(scene_manager)
 
     def draw(self, screen):
         screen.fill((0, 0, 0))
@@ -138,9 +140,7 @@ class SceneManager:
         self.current_scene = initial_scene
 
     def process_input(self, events):
-        new_scene = self.current_scene.process_input(events)
-        if new_scene is not None:
-            self.current_scene = new_scene
+        self.current_scene.process_input(events)
 
     def update(self, time_delta):
         self.current_scene.update(time_delta)
