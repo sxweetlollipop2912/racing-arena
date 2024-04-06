@@ -3,7 +3,7 @@ import pygame_gui
 import queue
 import asyncio
 from typing import List, Optional
-from globals import current_nickname
+import globals
 
 from player import Player
 from scene import Scene
@@ -23,6 +23,7 @@ class LobbyScene(Scene):
             text="Ready",
             manager=self.manager,
         )
+        print("Current nickname: ", globals.current_nickname)
 
     def process_input(
         self, events: List[pygame.event.Event], messages: queue.Queue
@@ -38,7 +39,7 @@ class LobbyScene(Scene):
                             loop = asyncio.new_event_loop()
                             loop.run_until_complete(connection.send_ready_signal())
                             for player in self.players:
-                                if player.nickname == current_nickname:
+                                if player.nickname == globals.current_nickname:
                                     player.is_ready = True
                         else:
                             self.button_ready.set_text("Ready")
@@ -46,7 +47,7 @@ class LobbyScene(Scene):
                             loop = asyncio.new_event_loop()
                             loop.run_until_complete(connection.send_unready_signal())
                             for player in self.players:
-                                if player.nickname == current_nickname:
+                                if player.nickname == globals.current_nickname:
                                     player.is_ready = False
 
         try:
@@ -75,7 +76,6 @@ class LobbyScene(Scene):
                     return next_scene
         except queue.Empty:
             pass
-        # def check_gamestart(self):
 
         return self
 

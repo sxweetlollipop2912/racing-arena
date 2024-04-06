@@ -4,7 +4,8 @@ import asyncio
 import queue
 from typing import List, Optional
 
-from globals import SCREEN_SIZE, LOGGER, current_nickname
+from globals import SCREEN_SIZE, LOGGER
+import globals
 from lobby_scene import LobbyScene
 from scene import Scene
 from connection_manager import ConnectionManager
@@ -63,7 +64,7 @@ class RegistrationScene(Scene):
                 if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
                     if event.ui_element == self.button_submit:
                         username = self.text_entry.get_text()
-                        current_nickname = username
+                        globals.current_nickname = username
                         LOGGER.info(
                             f"[UI Thread] [Registration] Username input: {username}"
                         )
@@ -101,7 +102,7 @@ class RegistrationScene(Scene):
                         players.append(Player(nickname, is_ready == "True"))
                     return LobbyScene(players)
                 elif command == "REGISTRATION_FAILURE":
-                    current_nickname = None
+                    globals.current_nickname = None
                     self.error_message = self.body_font.render(args[0], True, (200, 0, 0))
         except queue.Empty:
             pass
