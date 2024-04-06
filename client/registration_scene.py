@@ -91,14 +91,17 @@ class RegistrationScene(Scene):
                             loop = asyncio.new_event_loop()
                             loop.run_until_complete(connection.send_registration(username))
 
-        while not messages.empty():
-            command, *args = messages.get()
-            if command == "REGISTRATION_SUCCESS":
-                # TODO: Send to LobbyScene the list of current players in lobby
-                return LobbyScene()
-            elif command == "REGISTRATION_FAILURE":
-                current_nickname = None
-                self.error_message = self.body_font.render(args[0], True, (200, 0, 0))
+        try:
+            while (message := messages.get(block=False)):
+                command, args = messages.get()
+                if command == "REGISTRATION_SUCCESS":
+                    # TODO: Send to LobbyScene the list of current players in lobby
+                    return LobbyScene()
+                elif command == "REGISTRATION_FAILURE":
+                    current_nickname = None
+                    self.error_message = self.body_font.render(args[0], True, (200, 0, 0))
+        except queue.Empty:
+            pass
 
     def update(self, time_delta: float) -> None:
         self.manager.update(time_delta)
