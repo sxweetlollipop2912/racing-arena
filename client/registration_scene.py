@@ -88,7 +88,8 @@ class RegistrationScene(Scene):
                             )
                             return None
                         else:
-                            asyncio.run(connection.send_registration(username))
+                            loop = asyncio.new_event_loop()
+                            loop.run_until_complete(connection.send_registration(username))
 
         while not messages.empty():
             command, *args = messages.get()
