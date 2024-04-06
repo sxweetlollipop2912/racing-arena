@@ -1,9 +1,6 @@
 import re
 from typing import Optional, Dict, List
-
-
-class RegistrationError(Exception):
-    pass
+from exceptions import RegistrationError
 
 
 class Player:

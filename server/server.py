@@ -1,10 +1,11 @@
-from typing import List, Dict, Tuple
 import time
 import asyncio
 from enum import Enum
-from typing import Optional
 import logging
+from asyncio import StreamWriter, StreamReader
+from typing import Tuple, List, Dict, Optional
 
+from exceptions import RegistrationError, WrongStateError
 from player_manager import Player, PlayerManager
 from question_manager import Question, QuestionManager
 
@@ -20,10 +21,6 @@ logging.basicConfig(
     datefmt="%m/%d/%Y %H:%M:%S",
 )
 LOGGER = logging.getLogger(__name__)
-
-
-class WrongStateError(Exception):
-    pass
 
 
 class GameState(Enum):
