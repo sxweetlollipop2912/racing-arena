@@ -33,7 +33,9 @@ def game_loop() -> None:
         pygame.display.flip()
 
 
-game_thread = threading.Thread(target=game_loop)
+loop = asyncio.new_event_loop()
+asyncio.run_coroutine_threadsafe(connection.handle_conversation("localhost", 54321), loop)
+game_thread = threading.Thread(target=loop.run_forever)
 game_thread.start()
 
-asyncio.run(connection.handle_conversation("localhost", 54321))
+game_loop()

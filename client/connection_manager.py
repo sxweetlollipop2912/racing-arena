@@ -37,6 +37,7 @@ class ConnectionManager:
         await self.write_to_server(f"REGISTER;{nickname}")
 
     async def handle_conversation(self, host: str, port: int) -> None:
+        LOGGER.info(f"[Connection Thread] Connecting to {host}:{port}.")
         try:
             reader, writer = await asyncio.open_connection(host, port)
             self.writer = writer
