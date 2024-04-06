@@ -53,7 +53,7 @@ class RegistrationScene(Scene):
         # Create the button
         self.button_submit = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect((470, 515), (150, 50)),
-            text="SUBMIT",
+            text="START",
             manager=self.manager,
         )
 
