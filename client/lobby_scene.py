@@ -35,11 +35,13 @@ class LobbyScene(Scene):
                         if self.button_ready.text == "Ready":
                             self.button_ready.set_text("Unready")
                             # send ready message to server
-                            asyncio.run(connection.send_ready_signal())
+                            loop = asyncio.new_event_loop()
+                            loop.run_until_complete(connection.send_ready_signal())
                         else:
                             self.button_ready.set_text("Ready")
                             # send unready message to server
-                            asyncio.run(connection.send_unready_signal())
+                            loop = asyncio.new_event_loop()
+                            loop.run_until_complete(connection.send_unready_signal())
 
         while not messages.empty():
             command, args = messages.get()
