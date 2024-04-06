@@ -17,8 +17,10 @@ class RegistrationScene(Scene):
         super().__init__()
 
         self.manager = pygame_gui.UIManager(SCREEN_SIZE)
+        self.manager.get_theme().load_theme("client/assets/button.json")
+        self.manager.get_theme().load_theme("client/assets/text_entry_line.json")
 
-        self.background = pygame.image.load("client/assets/wallpaper-2.jpg")
+        self.background = pygame.image.load("client/assets/wallpaper.jpg")
         # Create a font object
 
         self.title_font = pygame.font.Font("client/assets/Poppins-Regular.ttf", 72)
@@ -51,7 +53,7 @@ class RegistrationScene(Scene):
         # Create the button
         self.button_submit = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect((470, 515), (150, 50)),
-            text="Submit",
+            text="SUBMIT",
             manager=self.manager,
         )
 
