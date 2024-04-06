@@ -5,7 +5,7 @@ from typing import List, Optional
 
 from player import Player
 from scene import Scene
-
+from game_scene import GameScene
 
 class LobbyScene(Scene):
     def __init__(self):
@@ -39,6 +39,16 @@ class LobbyScene(Scene):
                 pygame.quit()
                 return
             return self
+    
+        for message in messages:
+            cmd, *args = message
+            race_length, answer_time_limit = args
+            if cmd == "GAME_STARTING":
+                next_scene = GameScene()
+                next_scene.players = {nickname: (0,0) for nickname in self.players}
+                next_scene.race_length = race_length
+                next_scene.answer_time_limit = answer_time_limit
+                return next_scene
         # def check_gamestart(self):
 
         # def starting_game(self):
