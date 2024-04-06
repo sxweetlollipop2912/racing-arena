@@ -265,7 +265,7 @@ class ClientManager:
                             raise RegistrationError("You have already registered.")
 
                         player: Player = game.handle_registration(nickname)
-                        player.writer: asyncio.StreamWriter = writer
+                        player.writer = writer
                         self.clients[writer] = nickname
 
                         writer.write(
