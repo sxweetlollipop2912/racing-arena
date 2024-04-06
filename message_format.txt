@@ -1,0 +1,66 @@
+-- CLIENT: REGISTRATION --
+Request:
+REGISTER;<nickname>
+
+Response:
+REGISTRATION_SUCCESS;<nickname 1>,<is_ready 1>;...;<nickname n>,<is_ready n>
+REGISTRATION_FAILURE;<reason>
+
+Broadcast:
+PLAYER_JOINED;<nickname>
+
+-- CLIENT: READY --
+Request:
+READY
+
+Response:
+READY_FAILURE;<reason>
+
+Broadcast:
+PLAYER_READY;<nickname>
+
+-- CLIENT: UNREADY --
+Request:
+UNREADY
+
+Response:
+UNREADY_FAILURE;<reason>
+
+Broadcast:
+PLAYER_UNREADY;<nickname>
+
+-- SERVER: PLAYER DISCONNECT --
+Broadcast:
+PLAYER_LEFT;<nickname>
+
+-- SERVER: GAME_START --
+Broadcast:
+GAME_STARTING;<race_length>;<answer time limit>
+
+-- SERVER: NEW QUESTION --
+Broadcast:
+QUESTION;<round index>;<first number>;<operator>;<second number>
+
+-- CLIENT: ANSWER --
+Request:
+ANSWER;<answer>
+
+Response:
+ANSWER_FAILURE;<reason>
+
+-- SERVER: ANSWER CORRECT --
+Response:
+ANSWER_CORRECT;<correct answer>
+
+-- SERVER: ANSWER INCORRECT --
+Response:
+ANSWER_INCORRECT;<correct answer>
+
+-- SERVER: BROADCAST ROUND SCORE --
+Broadcast:
+DISQUALIFICATION;<nickname 1>;...;<nickname n>
+SCORES;<fastest nickname or empty>;<nickname 1>,<diff point 1>,<position 1>;...;<nickname n>,<diff point n>,<position n>
+
+-- SERVER: GAME OVER --
+Broadcast:
+GAME_OVER;<winner nickname or empty>

@@ -1,65 +1,55 @@
-import socket
-import json
-
-
-class Client:
-    def __init__(self, server_host: str, server_port: int):
-        self.server_host = server_host
-        self.server_port = server_port
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.nickname = None
-
-    def connect_to_server(self):
-        self.socket.connect((self.server_host, self.server_port))
-
-    def register_nickname(self, nickname: str) -> bool:
-        self.nickname = nickname
-        self.socket.send(json.dumps({"name": self.nickname}).encode())
-        response = self.socket.recv(1024)
-        return response.decode()
-
-    def receive_question(self):
-        data = self.socket.recv(1024)
-        return json.loads(data.decode())
-
-    def send_answer(self, answer: int):
-        self.socket.send(json.dumps({"type": "answer", "answer": answer}).encode())
-
-    def receive_game_update(self):
-        data = self.socket.recv(1024)
-        return json.loads(data.decode())
-
-    def disconnect(self):
-        self.socket.close()
-
-
+import asyncio
 import pygame
 import pygame_gui
+import logging
+import threading
+import queue
+from typing import Tuple, List, Dict, Optional
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(message)s",
+    datefmt="%m/%d/%Y %H:%M:%S",
+)
+LOGGER = logging.getLogger(__name__)
+
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
+SCREEN_SIZE = (SCREEN_WIDTH, SCREEN_HEIGHT)
+
+current_nickname = ""
 
 
-# Scene classes
+class Player:
+    def __init__(self, nickname: str):
+        self.nickname: str = nickname
+        self.diff_points: int = 0
+        self.position: int = 1
+        self.is_ready: bool = False
+        self.is_disqualified: bool = False
+
+
 class Scene:
-    def __init__(self, scene_manager):
+    def __init__(self):
         pass
 
-    def process_input(self, events):
+    def process_input(
+        self, ui_events: List[pygame.event.Event], messages: queue.Queue
+    ) -> Optional["Scene"]:
         pass
 
-    def update(self, time_delta):
+    def update(self, time_delta: float) -> None:
         pass
 
-    def draw(self, screen):
+    def draw(self, screen: pygame.Surface) -> None:
         pass
 
 
-class TitleScene(Scene):
-    def __init__(self, scene_manager, server_host, server_port):
-        super().__init__(scene_manager)
+class RegistrationScene(Scene):
+    def __init__(self):
+        super().__init__()
 
-        self.client = Client(server_host, server_port)
-        self.client.connect_to_server()
-
-        self.manager = pygame_gui.UIManager((800, 600))
+        self.manager = pygame_gui.UIManager(SCREEN_SIZE)
 
         # Create a font object
         self.font = pygame.font.Font(None, 50)  # Use the default font and a size of 50
@@ -87,89 +77,253 @@ class TitleScene(Scene):
             manager=self.manager,
         )
 
-    def process_input(self, events):
-        for event in events:
+        # Error message
+        self.error_message = self.font.render("", True, (255, 0, 0))
+
+    def process_input(
+        self, ui_events: List[pygame.event.Event], messages: queue.Queue
+    ) -> Optional[Scene]:
+        for event in ui_events:
+            self.manager.process_events(event)
             if event.type == pygame.USEREVENT:
                 if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
                     if event.ui_element == self.button_submit:
                         username = self.text_entry.get_text()
-                        if not username.isalnum() and "_" not in username:
-                            print(
-                                "Username can only contain alphanumeric characters and underscores."
+                        current_nickname = username
+                        LOGGER.info(
+                            f"[UI Thread] [Registration] Username input: {username}"
+                        )
+                        if not all(char.isalnum() or char == "_" for char in username):
+                            self.error_message = self.font.render(
+                                "Username can only contain alphanumeric characters and underscores.",
+                                True,
+                                (255, 0, 0),
                             )
+                            return None
                         elif len(username) > 10:
-                            print("Username cannot be longer than 10 characters.")
+                            self.error_message = self.font.render(
+                                "Username cannot be longer than 10 characters.",
+                                True,
+                                (255, 0, 0),
+                            )
+                            return None
+                        elif len(username) == 0:
+                            self.error_message = self.font.render(
+                                "Username cannot be empty.", True, (255, 0, 0)
+                            )
+                            return None
                         else:
-                            print(f"User Name: {username}")
-                            success = self.client.register_nickname(username)
-                            print(success)
-                            if success:
-                                self.scene_manager.current_scene = GameScene(
-                                    self.scene_manager
-                                )
-                            else:
-                                print("Registration failed.")
+                            asyncio.run(connection.send_registration(username))
 
-            self.manager.process_events(event)
+        while not messages.empty():
+            command, *args = messages.get()
+            if command == "REGISTRATION_SUCCESS":
+                # TODO: Send to LobbyScene the list of current players in lobby
+                return LobbyScene()
+            elif command == "REGISTRATION_FAILURE":
+                current_nickname = None
+                self.error_message = self.font.render(args[0], True, (255, 0, 0))
 
-    def update(self, time_delta):
+    def update(self, time_delta: float) -> None:
         self.manager.update(time_delta)
 
-    def draw(self, screen):
+    def draw(self, screen: pygame.Surface) -> None:
         screen.fill((0, 0, 50))  # Dark blue background
         screen.blit(self.title_text, (200, 50))  # Draw the title
         screen.blit(self.username_label_text, (200, 200))  # Draw the username label
+        screen.blit(self.error_message, (200, 500))  # Draw the error message
+        self.manager.draw_ui(screen)
+
+
+class LobbyScene(Scene):
+    def __init__(self):
+        super().__init__()
+        self.players: List[Player] = [
+            Player("Player 1"),
+            Player("Player 2"),
+            Player("Player 3"),
+            Player("Player 4"),
+            Player("Player 5"),
+            Player("Player 6"),
+            Player("Player 7"),
+            Player("Player 8"),
+            Player("Player 9"),
+            Player("Player 10"),
+        ]
+        self.players[1].is_ready = True
+        self.manager = pygame_gui.UIManager((800, 600))
+        self.button_submit = pygame_gui.elements.UIButton(
+            relative_rect=pygame.Rect((330, 510), (120, 80)),
+            text="Ready",
+            manager=self.manager,
+        )
+
+    def process_input(
+        self, events: List[pygame.event.Event], messages: queue.Queue
+    ) -> Optional[Scene]:
+        for event in events:
+            self.manager.process_events(event)
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                return
+            return self
+        # def check_gamestart(self):
+
+        # def starting_game(self):
+        return self
+
+    def update(self, time_delta: float):
+        self.manager.update(time_delta)
+
+    def draw(self, screen: pygame.Surface):
+        screen.fill((0, 0, 50))
+        font = pygame.font.Font(None, 36)
+        text = font.render("Waiting for other players...", True, (255, 255, 255))
+        text_rect = text.get_rect(center=(800 / 2, 50))
+        screen.blit(text, text_rect)
+
+        # draw a rectangle for player list
+        player_font = pygame.font.Font(None, 30)
+        pygame.draw.rect(screen, (204, 255, 255), (50, 100, 700, 400))
+        for i in range(0, len(self.players)):
+            player = self.players[i]
+            player_name = player_font.render(player.nickname, True, (0, 0, 0))
+            player_name_rect = player_name.get_rect(topleft=(70, 120 + 38 * i))
+            if player.is_ready:
+                player_status = player_font.render("Ready", True, (0, 255, 0))
+            else:
+                player_status = player_font.render("Not Ready", True, (255, 0, 0))
+            player_status_rect = player_status.get_rect(topleft=(630, 120 + 38 * i))
+            screen.blit(player_name, player_name_rect)
+            screen.blit(player_status, player_status_rect)
+
         self.manager.draw_ui(screen)
 
 
 class GameScene(Scene):
-    def __init__(self, scene_manager):
-        super().__init__(scene_manager)
+    def __init__(self):
+        super().__init__()
 
-    def draw(self, screen):
+    def process_input(
+        self, ui_events: List[pygame.event.Event], messages: queue.Queue
+    ) -> Optional[Scene]:
+        for event in ui_events:
+            pass
+
+    def update(self, time_delta: float) -> None:
+        pass
+
+    def draw(self, screen: pygame.Surface) -> None:
         screen.fill((0, 0, 0))
         font = pygame.font.Font(None, 36)
         text = font.render("Welcome to the Game!", True, (255, 255, 255))
         text_rect = text.get_rect(center=(800 / 2, 600 / 2))
         screen.blit(text, text_rect)
+        pass
 
 
-# Scene manager
 class SceneManager:
-    def __init__(self, initial_scene):
+    def __init__(self, initial_scene: Scene):
         self.current_scene = initial_scene
 
-    def process_input(self, events):
-        self.current_scene.process_input(events)
+    def process_input(self, ui_events: List[pygame.event.Event]) -> None:
+        new_scene = self.current_scene.process_input(ui_events, connection.messages)
+        if new_scene is not None:
+            self.current_scene = new_scene
 
-    def update(self, time_delta):
+    def update(self, time_delta: float) -> None:
         self.current_scene.update(time_delta)
 
-    def draw(self, screen):
+    def draw(self, screen: pygame.Surface) -> None:
         self.current_scene.draw(screen)
 
 
-# Main game loop
-def game_loop():
+def game_loop() -> None:
     pygame.init()
-    screen = pygame.display.set_mode((800, 600))
-    clock = pygame.time.Clock()
-    scene_manager = SceneManager(
-        TitleScene("localhost", 12345)
-    )  # replace with your server host and port
+    screen: pygame.Surface = pygame.display.set_mode(SCREEN_SIZE)
+    clock: pygame.time.Clock = pygame.time.Clock()
+    scene_manager: SceneManager = SceneManager(RegistrationScene())
 
     while True:
-        events = pygame.event.get()
-        for event in events:
+        ui_events: List[pygame.event.Event] = pygame.event.get()
+
+        for event in ui_events:
             if event.type == pygame.QUIT:
                 pygame.quit()
                 return
 
-        scene_manager.process_input(events)
+        scene_manager.process_input(ui_events)
         scene_manager.update(clock.tick(60) / 1000.0)
         scene_manager.draw(screen)
 
         pygame.display.flip()
 
 
-game_loop()
+class ConnectionManager:
+    def __init__(self):
+        self.writer: Optional[asyncio.StreamWriter] = None
+        self.messages: queue.Queue = queue.Queue()
+
+    async def write_to_server(self, message: str) -> None:
+        byte_message: bytes = (message + "\n").encode()
+        self.writer.write(byte_message)
+        await self.writer.drain()
+
+    async def send_ready_signal(self, nickname: str) -> None:
+        LOGGER.info("[Connection Thread] Sending READY signal to server.")
+        await self.write_to_server("READY")
+
+    async def send_unready_signal(self, nickname: str) -> None:
+        LOGGER.info("[Connection Thread] Sending UNREADY signal to server.")
+        await self.write_to_server("UNREADY")
+
+    async def send_answer(self, answer: int) -> None:
+        LOGGER.info(f"[Connection Thread] Sending answer to server: {answer}")
+        await self.write_to_server(f"ANSWER;{answer}")
+
+    async def send_registration(self, nickname: str) -> None:
+        LOGGER.info(
+            f"[Connection Thread] Sending REGISTER signal to server: {nickname}"
+        )
+        await self.write_to_server(f"REGISTER;{nickname}")
+
+    async def handle_conversation(self, host: str, port: int) -> None:
+        try:
+            reader, writer = await asyncio.open_connection(host, port)
+            self.writer = writer
+
+            address: Tuple[str, int] = writer.get_extra_info("peername")
+            LOGGER.info(f"[Connection Thread] Accepted connection from {address}.")
+            while True:
+                data: bytes = await reader.readline()
+                if not data:
+                    break
+                message: str = data.decode().strip()
+                LOGGER.info(
+                    f"[Connection Thread] Received message from {address}: {message}"
+                )
+
+                command: str
+                args: List[str]
+                command, *args = message.split(";")
+                command = command.upper()
+                self.messages.put((command, args))
+
+                LOGGER.info(
+                    f"[Connection Thread] Received message from {address}: {message}"
+                )
+
+        except ConnectionResetError:
+            LOGGER.info(
+                f"[Connection Thread] Connection reset by peer, address {address}."
+            )
+        finally:
+            self.writer = None
+            writer.close()
+
+
+game_thread = threading.Thread(target=game_loop)
+game_thread.start()
+
+connection = ConnectionManager()
+asyncio.run(connection.handle_conversation("localhost", 54321))

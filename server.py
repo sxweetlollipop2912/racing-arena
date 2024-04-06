@@ -223,11 +223,10 @@ class Game:
     async def handle_disconnection(self, nickname: str) -> None:
         if self.state == GameState.LOBBY:
             self.player_manager.remove_player(nickname)
-            await client.broadcast(f"PLAYER_LEFT;{nickname}")
         else:
             player: Player = self.player_manager.players[nickname]
             player.disqualify()
-            await client.broadcast(f"PLAYER_LEFT;{nickname}")
+        await client.broadcast(f"PLAYER_LEFT;{nickname}")
 
     def is_over(self) -> Tuple[bool, Optional[Player]]:
         is_over: bool = False
@@ -277,6 +276,7 @@ class Game:
             self.state = GameState.WAITING_FOR_ANSWERS
             LOGGER.info("[Game Thread] State changed: WAITING_FOR_ANSWERS.")
             # Wait for the clients to answer
+            # TODO: What if all players answered before the time limit?
             await asyncio.sleep(ANSWER_TIME_LIMIT)
 
             self.state = GameState.PROCESSING
@@ -293,7 +293,9 @@ class Game:
                     player.update_state(1)
                     player.wa_streak = 0
 
-                    await client.write_to_player(nickname, "ANSWER_CORRECT")
+                    await client.write_to_player(
+                        nickname, f"ANSWER_CORRECT;{question.answer}"
+                    )
                     if (
                         fastest_player is None
                         or player.answer_time < fastest_player.answer_time
@@ -308,7 +310,9 @@ class Game:
                     player.wa_streak += 1
 
                     fastest_bonus += 1
-                    await client.write_to_player(nickname, "ANSWER_INCORRECT")
+                    await client.write_to_player(
+                        nickname, f"ANSWER_INCORRECT;{question.answer}"
+                    )
                     LOGGER.info(
                         f"[Game Thread] {nickname} answered incorrectly, position: {player.position}."
                     )
@@ -335,22 +339,18 @@ class Game:
 
             # Send the updated scores to all clients
             scores: str = self.player_manager.pack_players_round_info()
-            await client.broadcast(f"SCORES;{scores}")
+            await client.broadcast(f"SCORES;{fastest_player or ''};{scores}")
+            # TODO: Wait for a few seconds before starting the next round
 
             # Check if the game is over
             is_over: bool
             winner: Optional[Player]
             is_over, winner = self.is_over()
             if is_over:
-                await client.broadcast("GAME_OVER")
-                if winner is not None:
-                    await client.broadcast(f"WINNER;{winner.nickname}")
-                    LOGGER.info(
-                        f"[Game Thread] Game over. Winner is {winner.nickname}."
-                    )
-                else:
-                    await client.broadcast("WINNER;")
-                    LOGGER.info("[Game Thread] Game over. No winner.")
+                await client.broadcast(f"GAME_OVER;{winner or ''}")
+                LOGGER.info(
+                    f"[Game Thread] Game over. Winner is {winner.nickname or ''}."
+                )
                 self.reset_game()
                 client.reset_clients()
 
