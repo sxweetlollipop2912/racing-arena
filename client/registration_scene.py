@@ -104,8 +104,6 @@ class RegistrationScene(Scene):
             elif command == "REGISTRATION_FAILURE":
                 current_nickname = None
                 self.error_message = self.body_font.render(args[0], True, (200, 0, 0))
-            else:
-                messages.pop()
 
     def update(self, time_delta: float) -> None:
         self.manager.update(time_delta)
