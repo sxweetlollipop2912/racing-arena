@@ -17,11 +17,11 @@ class ConnectionManager:
         self.writer.write(byte_message)
         await self.writer.drain()
 
-    async def send_ready_signal(self, nickname: str) -> None:
+    async def send_ready_signal(self) -> None:
         LOGGER.info("[Connection Thread] Sending READY signal to server.")
         await self.write_to_server("READY")
 
-    async def send_unready_signal(self, nickname: str) -> None:
+    async def send_unready_signal(self) -> None:
         LOGGER.info("[Connection Thread] Sending UNREADY signal to server.")
         await self.write_to_server("UNREADY")
 

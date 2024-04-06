@@ -1,6 +1,7 @@
 import pygame
 import queue
 from typing import List, Optional
+from player import Player
 
 from scene import Scene
 
@@ -8,6 +9,12 @@ from scene import Scene
 class GameScene(Scene):
     def __init__(self):
         super().__init__()
+        
+    def __init__(self, players: List[Player], race_length, answer_time_limit):
+        super().__init__()
+        self.players = players
+        self.race_length = race_length
+        self.answer_time_limit = answer_time_limit
 
     def process_input(
         self, ui_events: List[pygame.event.Event], messages: queue.Queue

@@ -8,9 +8,9 @@ from globals import SCREEN_SIZE, LOGGER, current_nickname
 from lobby_scene import LobbyScene
 from scene import Scene
 from connection_manager import ConnectionManager
+from player import Player
 
 connection = ConnectionManager()
-
 
 class RegistrationScene(Scene):
     def __init__(self):
@@ -93,13 +93,19 @@ class RegistrationScene(Scene):
                             asyncio.run(connection.send_registration(username))
 
         while not messages.empty():
-            command, *args = messages.get()
+            command, args = messages.get()
             if command == "REGISTRATION_SUCCESS":
                 # TODO: Send to LobbyScene the list of current players in lobby
-                return LobbyScene()
+                players: List[Player] = []
+                for player_str in args:
+                    nickname, is_ready = player_str.split(",")
+                    players.append(Player(nickname, is_ready == "True"))
+                return LobbyScene(players)
             elif command == "REGISTRATION_FAILURE":
                 current_nickname = None
                 self.error_message = self.body_font.render(args[0], True, (200, 0, 0))
+            else:
+                messages.pop()
 
     def update(self, time_delta: float) -> None:
         self.manager.update(time_delta)
