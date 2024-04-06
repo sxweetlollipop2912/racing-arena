@@ -40,15 +40,18 @@ class LobbyScene(Scene):
                 return
             return self
     
-        for message in messages:
-            cmd, *args = message
-            race_length, answer_time_limit = args
-            if cmd == "GAME_STARTING":
-                next_scene = GameScene()
-                next_scene.players = {nickname: (0,0) for nickname in self.players}
-                next_scene.race_length = race_length
-                next_scene.answer_time_limit = answer_time_limit
-                return next_scene
+        try:
+            while (message := messages.get(block=False)):
+                cmd, args = message
+                if cmd == "GAME_STARTING":
+                    race_length, answer_time_limit = args
+                    next_scene = GameScene()
+                    next_scene.players = {nickname: (0,0) for nickname in self.players}
+                    next_scene.race_length = race_length
+                    next_scene.answer_time_limit = answer_time_limit
+                    return next_scene
+        except queue.Empty:
+            pass
         # def check_gamestart(self):
 
         # def starting_game(self):

@@ -92,7 +92,7 @@ class RegistrationScene(Scene):
 
         try:
             while (message := messages.get(block=False)):
-                command, args = messages.get()
+                command, args = message
                 if command == "REGISTRATION_SUCCESS":
                     # TODO: Send to LobbyScene the list of current players in lobby
                     return LobbyScene()
