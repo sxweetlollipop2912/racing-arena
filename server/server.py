@@ -82,7 +82,7 @@ class Game:
         else:
             player: Player = self.player_manager.players[nickname]
             player.disqualify()
-        await client.broadcast(f"PLAYER_LEFT;{nickname}")
+        await client.broadcast(f"PLAYER_LEFT;{nickname}", [nickname])
 
     def is_over(self) -> Tuple[bool, Optional[Player]]:
         is_over: bool = False
@@ -271,7 +271,7 @@ class ClientManager:
                         writer.write(
                             f"REGISTRATION_SUCCESS;{game.player_manager.pack_players_lobby_info()}\n".encode()
                         )
-                        await client.broadcast(f"PLAYER_JOINED;{nickname}")
+                        await client.broadcast(f"PLAYER_JOINED;{nickname}", [nickname])
                         LOGGER.info(f"[Client Thread] Registered as {nickname}")
 
                     except RegistrationError as e:
@@ -285,7 +285,7 @@ class ClientManager:
                         nickname: str = self.clients[writer]
                         await game.handle_ready(nickname)
 
-                        await client.broadcast(f"PLAYER_READY;{nickname}")
+                        await client.broadcast(f"PLAYER_READY;{nickname}", [nickname])
                         LOGGER.info(f"[Client Thread] {nickname} is ready.")
 
                     except WrongStateError as e:
@@ -297,7 +297,7 @@ class ClientManager:
                         nickname: str = self.clients[writer]
                         game.handle_unready(nickname)
 
-                        await client.broadcast(f"PLAYER_UNREADY:{nickname}")
+                        await client.broadcast(f"PLAYER_UNREADY;{nickname}", [nickname])
                         LOGGER.info(f"[Client Thread] {nickname} is unready.")
 
                     except WrongStateError as e:

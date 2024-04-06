@@ -37,30 +37,45 @@ class LobbyScene(Scene):
                             # send ready message to server
                             loop = asyncio.new_event_loop()
                             loop.run_until_complete(connection.send_ready_signal())
+                            for player in self.players:
+                                if player.nickname == current_nickname:
+                                    player.is_ready = True
                         else:
                             self.button_ready.set_text("Ready")
                             # send unready message to server
                             loop = asyncio.new_event_loop()
                             loop.run_until_complete(connection.send_unready_signal())
+                            for player in self.players:
+                                if player.nickname == current_nickname:
+                                    player.is_ready = False
 
-        while not messages.empty():
-            command, args = messages.get()
-            if command == "PLAYER_READY":
-                for player in self.players:
-                    if player.nickname == args[0]:
-                        player.is_ready = True
-            elif command == "PLAYER_UNREADY":
-                for player in self.players:
-                    if player.nickname == args[0]:
-                        player.is_ready = False
-            elif command == "PLAYER_JOINED":
-                self.players.append(Player(args[0]))
-            elif command == "PLAYER_LEFT":
-                for player in self.players:
-                    if player.nickname == args[0]:
-                        self.players.remove(player)
-            elif command == "GAME_STARTING":
-                return GameScene(self.players, args[0], args[1])
+        try:
+            while (message := messages.get(block=False)):
+                command, args = message
+                if command == "PLAYER_READY":
+                    for player in self.players:
+                        if player.nickname == args[0]:
+                            player.is_ready = True
+                elif command == "PLAYER_UNREADY":
+                    for player in self.players:
+                        if player.nickname == args[0]:
+                            player.is_ready = False
+                elif command == "PLAYER_JOINED":
+                    self.players.append(Player(args[0]))
+                elif command == "PLAYER_LEFT":
+                    for player in self.players:
+                        if player.nickname == args[0]:
+                            self.players.remove(player)
+                elif command == "GAME_STARTING":
+                    race_length, answer_time_limit = args
+                    next_scene = GameScene()
+                    next_scene.players = {nickname: (0,0) for nickname in self.players}
+                    next_scene.race_length = race_length
+                    next_scene.answer_time_limit = answer_time_limit
+                    return next_scene
+        except queue.Empty:
+            pass
+        # def check_gamestart(self):
 
         return self
 

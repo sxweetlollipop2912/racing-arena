@@ -6,6 +6,7 @@ from globals import LOGGER
 
 class ConnectionManager:
     _shared_state = {}
+
     def __init__(self):
         self.__dict__ = self._shared_state
         if not hasattr(self, "writer"):
@@ -36,6 +37,7 @@ class ConnectionManager:
         await self.write_to_server(f"REGISTER;{nickname}")
 
     async def handle_conversation(self, host: str, port: int) -> None:
+        LOGGER.info(f"[Connection Thread] Connecting to {host}:{port}.")
         try:
             reader, writer = await asyncio.open_connection(host, port)
             self.writer = writer
