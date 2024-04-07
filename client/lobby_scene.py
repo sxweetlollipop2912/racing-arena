@@ -20,13 +20,18 @@ class LobbyScene(Scene):
         self.players = players
         self.manager = pygame_gui.UIManager((800, 600))
         self.manager.get_theme().load_theme("client/assets/ready_button.json")
+        self.background = pygame.image.load("client/assets/wallpaper.jpg")
         self.button_ready = pygame_gui.elements.UIButton(
-            relative_rect=pygame.Rect((330, 510), (120, 80)),
-            text="Ready",
+            relative_rect=pygame.Rect((330, 540), (150, 50)),
+            text="READY",
             manager=self.manager,
         )
         self.ready_button_timer = None
         self.READY_BUTTON_TIMEOUT = 5000
+        self.font = pygame.font.Font("client/assets/Poppins-Regular.ttf", 32)
+        self.font.set_bold(False)
+        self.player_font = pygame.font.Font("client/assets/Poppins-Regular.ttf", 20)
+        self.player_font.set_bold(False)
 
     def process_input(
         self, events: List[pygame.event.Event], messages: queue.Queue
@@ -36,7 +41,7 @@ class LobbyScene(Scene):
             if event.type == pygame.USEREVENT:
                 if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
                     if event.ui_element == self.button_ready:
-                        if self.button_ready.text == "Ready":
+                        if self.button_ready.text == "READY":
                             self.button_ready.disable()
                             self.ready_button_timer = pygame.time.set_timer(
                                 self.READY_BUTTON_TIMEOUT, 0
@@ -101,30 +106,66 @@ class LobbyScene(Scene):
         self.manager.update(time_delta)
 
     def draw(self, screen: pygame.Surface):
-        screen.fill((0, 0, 50))
-        font = pygame.font.Font(None, 36)
-        text = font.render("Waiting for other players...", True, (255, 255, 255))
-        text_rect = text.get_rect(center=(800 / 2, 50))
+        # hex ee9755
+        screen.fill((0, 0, 0))
+        screen.blit(self.background, (0, 0))
+        text = self.font.render("Waiting for other players...", True, (255, 255, 255))
+        text_rect = text.get_rect(center=(800 / 2, 35))
         screen.blit(text, text_rect)
 
-        # draw a rectangle for player list
-        player_font = pygame.font.Font(None, 30)
+        # pygame.draw.rect(screen, (204, 255, 255), (50, 100, 700, 400))
 
-        pygame.draw.rect(screen, (204, 255, 255), (50, 100, 700, 400))
+        box_color = (50, 50, 50)
+        box_width = 700
+        box_height = 41
+        box_margin = 10  # Margin between the text and the box edges
+        box_gap = 5  # Gap between the boxes
 
-        for i in range(0, len(self.players)):
-            player = self.players[i]
-            player_name = player_font.render(player.nickname, True, (0, 0, 0))
-            player_name_rect = player_name.get_rect(topleft=(70, 120 + 38 * i))
+        status_box_width = 150
+        status_box_height = 41
+        status_box_color = (20, 20, 20)
+
+        for i, player in enumerate(self.players):
+            # Draw the player box
+            box_rect = pygame.Rect(
+                50, 70 + box_height * i + box_gap * i, box_width, box_height
+            )
+            pygame.draw.rect(screen, box_color, box_rect)
+
+            # Render the player's name
+            player_name = self.player_font.render(
+                player.nickname, True, (230, 230, 230)
+            )
+            player_name_rect = player_name.get_rect(
+                center=(
+                    box_rect.left + box_margin + player_name.get_width() / 2,
+                    box_rect.centery,
+                )
+            )
+
+            # Draw the status box and render the player's status
+            status_box_rect = pygame.Rect(
+                box_rect.right - status_box_width,
+                box_rect.top,
+                status_box_width,
+                status_box_height,
+            )
             if player.is_ready:
-                player_status = player_font.render("Ready", True, (0, 255, 0))
+                # 00BFA5
+                pygame.draw.rect(screen, (0, 200, 0), status_box_rect)
+                player_status = self.player_font.render("Ready", True, status_box_color)
                 if player.nickname == globals.current_nickname:
-                    self.button_ready.set_text("Unready")
+                    self.button_ready.set_text("UNREADY")
             else:
-                player_status = player_font.render("Not Ready", True, (255, 0, 0))
+                pygame.draw.rect(screen, (255, 0, 0), status_box_rect)
+                player_status = self.player_font.render(
+                    "Not Ready", True, status_box_color
+                )
                 if player.nickname == globals.current_nickname:
-                    self.button_ready.set_text("Ready")
-            player_status_rect = player_status.get_rect(topleft=(630, 120 + 38 * i))
+                    self.button_ready.set_text("READY")
+            player_status_rect = player_status.get_rect(center=status_box_rect.center)
+
+            # Draw the player's name and status on the screen
             screen.blit(player_name, player_name_rect)
             screen.blit(player_status, player_status_rect)
 
