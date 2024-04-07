@@ -297,7 +297,7 @@ class ClientManager:
                         nickname: str = self.clients[writer]
                         game.handle_unready(nickname)
 
-                        await client.broadcast(f"PLAYER_UNREADY:{nickname}", [nickname])
+                        await client.broadcast(f"PLAYER_UNREADY;{nickname}", [nickname])
                         LOGGER.info(f"[Client Thread] {nickname} is unready.")
 
                     except WrongStateError as e:
