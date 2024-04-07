@@ -23,7 +23,6 @@ class LobbyScene(Scene):
             text="Ready",
             manager=self.manager,
         )
-        print("Current nickname: ", globals.current_nickname)
 
     def process_input(
         self, events: List[pygame.event.Event], messages: queue.Queue
@@ -34,7 +33,7 @@ class LobbyScene(Scene):
                 if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
                     if event.ui_element == self.button_ready:
                         if self.button_ready.text == "Ready":
-                            self.button_ready.set_text("Unready")
+                            # self.button_ready.set_text("Unready")
                             # send ready message to server
                             loop = asyncio.new_event_loop()
                             loop.run_until_complete(connection.send_ready_signal())
@@ -42,7 +41,7 @@ class LobbyScene(Scene):
                                 if player.nickname == globals.current_nickname:
                                     player.is_ready = True
                         else:
-                            self.button_ready.set_text("Ready")
+                            # self.button_ready.set_text("Ready")
                             # send unready message to server
                             loop = asyncio.new_event_loop()
                             loop.run_until_complete(connection.send_unready_signal())
@@ -100,8 +99,12 @@ class LobbyScene(Scene):
             player_name_rect = player_name.get_rect(topleft=(70, 120 + 38 * i))
             if player.is_ready:
                 player_status = player_font.render("Ready", True, (0, 255, 0))
+                if player.nickname == globals.current_nickname:
+                    self.button_ready.set_text("Unready")
             else:
                 player_status = player_font.render("Not Ready", True, (255, 0, 0))
+                if player.nickname == globals.current_nickname:
+                    self.button_ready.set_text("Ready")
             player_status_rect = player_status.get_rect(topleft=(630, 120 + 38 * i))
             screen.blit(player_name, player_name_rect)
             screen.blit(player_status, player_status_rect)
