@@ -49,9 +49,6 @@ class ConnectionManager:
                 if not data:
                     break
                 message: str = data.decode().strip()
-                LOGGER.info(
-                    f"[Connection Thread] Received message from {address}: {message}"
-                )
 
                 command: str
                 args: List[str]
