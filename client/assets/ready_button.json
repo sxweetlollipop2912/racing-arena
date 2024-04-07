@@ -1,0 +1,18 @@
+{
+    "button": {
+        "colours": {
+            "normal_bg": "#B3E5FC",
+            "hovered_bg": "#81D4FA",
+            "normal_text": "#000000",
+            "hovered_text": "#000000"
+        },
+        "font": {
+            "size": "20",
+            "bold": "0"
+        },
+        "misc": {
+            "border_width": "2",
+            "border_color": "#01579B"
+        }
+    }
+}
