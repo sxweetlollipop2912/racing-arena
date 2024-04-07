@@ -17,8 +17,10 @@ class RegistrationScene(Scene):
         super().__init__()
 
         self.manager = pygame_gui.UIManager(SCREEN_SIZE)
+        self.manager.get_theme().load_theme("client/assets/button.json")
+        self.manager.get_theme().load_theme("client/assets/text_entry_line.json")
 
-        self.background = pygame.image.load("client/assets/wallpaper-2.jpg")
+        self.background = pygame.image.load("client/assets/wallpaper.jpg")
         # Create a font object
 
         self.title_font = pygame.font.Font("client/assets/Poppins-Regular.ttf", 72)
@@ -42,16 +44,13 @@ class RegistrationScene(Scene):
             manager=self.manager,
         )
 
-        # Get the size of the screen
-        screen_width, screen_height = pygame.display.get_surface().get_size()
-
         # Error message
         self.error_message = self.body_font.render("", True, (200, 0, 0))
 
         # Create the button
         self.button_submit = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect((470, 515), (150, 50)),
-            text="Submit",
+            text="START",
             manager=self.manager,
         )
 
@@ -70,7 +69,7 @@ class RegistrationScene(Scene):
                         )
                         if not all(char.isalnum() or char == "_" for char in username):
                             self.error_message = self.body_font.render(
-                                "Username can only contain alphanumeric characters and underscores.",
+                                "Username must be alphanumeric characters and underscores only.",
                                 False,
                                 (200, 0, 0),
                             )
@@ -88,21 +87,26 @@ class RegistrationScene(Scene):
                             )
                             return None
                         else:
-                            asyncio.run(connection.send_registration(username))
+                            loop = asyncio.new_event_loop()
+                            loop.run_until_complete(connection.send_registration(username))
 
-        while not messages.empty():
-            command, *args = messages.get()
-            if command == "REGISTRATION_SUCCESS":
-                # TODO: Send to LobbyScene the list of current players in lobby
-                return LobbyScene()
-            elif command == "REGISTRATION_FAILURE":
-                current_nickname = None
-                self.error_message = self.body_font.render(args[0], True, (200, 0, 0))
+        try:
+            while (message := messages.get(block=False)):
+                command, args = message
+                if command == "REGISTRATION_SUCCESS":
+                    # TODO: Send to LobbyScene the list of current players in lobby
+                    return LobbyScene()
+                elif command == "REGISTRATION_FAILURE":
+                    current_nickname = None
+                    self.error_message = self.body_font.render(args[0], True, (200, 0, 0))
+        except queue.Empty:
+            pass
 
     def update(self, time_delta: float) -> None:
         self.manager.update(time_delta)
 
     def draw(self, screen: pygame.Surface) -> None:
+        screen.fill((0, 0, 0))
         screen.blit(self.background, (0, 0))
         # Get the size of the screen
         screen_width, screen_height = pygame.display.get_surface().get_size()
@@ -117,5 +121,5 @@ class RegistrationScene(Scene):
 
         # Draw the username_text
         screen.blit(self.username_text, (170, 480))  # Draw the username label
-        screen.blit(self.error_message, (175, 565))  # Draw the error message
+        screen.blit(self.error_message, (174, 565))  # Draw the error message
         self.manager.draw_ui(screen)
