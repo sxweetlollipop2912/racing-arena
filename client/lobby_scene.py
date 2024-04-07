@@ -12,7 +12,9 @@ from connection_manager import ConnectionManager
 
 connection = ConnectionManager()
 
-class LobbyScene(Scene):    
+
+class LobbyScene(Scene):
+
     def __init__(self, players: List[Player] = []):
         super().__init__()
         self.players = players
@@ -23,6 +25,8 @@ class LobbyScene(Scene):
             text="Ready",
             manager=self.manager,
         )
+        self.ready_button_timer = None
+        self.READY_BUTTON_TIMEOUT = 5000
 
     def process_input(
         self, events: List[pygame.event.Event], messages: queue.Queue
@@ -33,24 +37,39 @@ class LobbyScene(Scene):
                 if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
                     if event.ui_element == self.button_ready:
                         if self.button_ready.text == "Ready":
-                            # self.button_ready.set_text("Unready")
-                            # send ready message to server
+                            self.button_ready.disable()
+                            self.ready_button_timer = pygame.time.set_timer(
+                                self.READY_BUTTON_TIMEOUT, 0
+                            )
+                            self.ready_button_timer = pygame.time.set_timer(
+                                self.READY_BUTTON_TIMEOUT, 100, 1
+                            )
                             loop = asyncio.new_event_loop()
                             loop.run_until_complete(connection.send_ready_signal())
                             for player in self.players:
                                 if player.nickname == globals.current_nickname:
                                     player.is_ready = True
                         else:
-                            # self.button_ready.set_text("Ready")
-                            # send unready message to server
+                            self.button_ready.disable()
+                            self.ready_button_timer = pygame.time.set_timer(
+                                self.READY_BUTTON_TIMEOUT, 0
+                            )
+                            self.ready_button_timer = pygame.time.set_timer(
+                                self.READY_BUTTON_TIMEOUT, 100, 1
+                            )
                             loop = asyncio.new_event_loop()
                             loop.run_until_complete(connection.send_unready_signal())
                             for player in self.players:
                                 if player.nickname == globals.current_nickname:
                                     player.is_ready = False
+            elif event.type == self.READY_BUTTON_TIMEOUT:
+                self.button_ready.enable()
+                self.ready_button_timer = pygame.time.set_timer(
+                    self.READY_BUTTON_TIMEOUT, 0, 1
+                )
 
         try:
-            while (message := messages.get(block=False)):
+            while message := messages.get(block=False):
                 command, args = message
                 if command == "PLAYER_READY":
                     for player in self.players:
@@ -69,7 +88,7 @@ class LobbyScene(Scene):
                 elif command == "GAME_STARTING":
                     race_length, answer_time_limit = args
                     next_scene = GameScene()
-                    next_scene.players = {nickname: (0,0) for nickname in self.players}
+                    next_scene.players = {nickname: (0, 0) for nickname in self.players}
                     next_scene.race_length = race_length
                     next_scene.answer_time_limit = answer_time_limit
                     return next_scene
@@ -90,9 +109,9 @@ class LobbyScene(Scene):
 
         # draw a rectangle for player list
         player_font = pygame.font.Font(None, 30)
-            
+
         pygame.draw.rect(screen, (204, 255, 255), (50, 100, 700, 400))
-        
+
         for i in range(0, len(self.players)):
             player = self.players[i]
             player_name = player_font.render(player.nickname, True, (0, 0, 0))
