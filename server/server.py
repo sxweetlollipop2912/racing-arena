@@ -13,7 +13,7 @@ MAX_PLAYERS = 10
 MIN_PLAYERS = 2
 MAX_RACE_LENGTH = 25
 MIN_RACE_LENGTH = 4
-ANSWER_TIME_LIMIT = 3
+ANSWER_TIME_LIMIT = 10
 
 logging.basicConfig(
     level=logging.INFO,
@@ -197,17 +197,19 @@ class Game:
 
             # Send the updated scores to all clients
             scores: str = self.player_manager.pack_players_round_info()
-            await client.broadcast(f"SCORES;{fastest_player or ''};{scores}")
+            fastest_player_nickname = fastest_player.nickname if fastest_player else None
+            await client.broadcast(f"SCORES;{fastest_player_nickname or ''};{scores}")
             # TODO: Wait for a few seconds before starting the next round
 
             # Check if the game is over
             is_over: bool
             winner: Optional[Player]
             is_over, winner = self.is_over()
+            winner_nickname = winner.nickname if winner else None
             if is_over:
-                await client.broadcast(f"GAME_OVER;{winner or ''}")
+                await client.broadcast(f"GAME_OVER;{winner_nickname or ''}")
                 LOGGER.info(
-                    f"[Game Thread] Game over. Winner is {winner.nickname or ''}."
+                    f"[Game Thread] Game over. Winner is {winner_nickname or ''}."
                 )
                 self.reset_game()
                 client.reset_clients()
@@ -327,7 +329,7 @@ class ClientManager:
             writer.close()
 
 
-game: Game = Game(10, 3)
+game: Game = Game(10, 5)
 client: ClientManager = ClientManager()
 address = ("localhost", 54321)
 loop = asyncio.get_event_loop()
