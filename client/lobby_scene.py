@@ -14,7 +14,6 @@ connection = ConnectionManager()
 
 
 class LobbyScene(Scene):
-
     def __init__(self, players: List[Player] = []):
         super().__init__()
         self.players = players
@@ -91,12 +90,14 @@ class LobbyScene(Scene):
                         if player.nickname == args[0]:
                             self.players.remove(player)
                 elif command == "GAME_STARTING":
-                    race_length, answer_time_limit = args
+                    race_length, answer_time_limit, prepare_time_limit = args
                     answer_time_limit = int(answer_time_limit)
+                    prepare_time_limit = int(prepare_time_limit)
                     next_scene = GameScene()
                     next_scene.players = {nickname: (0, 0) for nickname in self.players}
                     next_scene.race_length = race_length
                     next_scene.answer_time_limit = answer_time_limit
+                    next_scene.prepare_time_limit = prepare_time_limit
                     next_scene.countdown.set_start_time(answer_time_limit)
                     return next_scene
         except queue.Empty:

@@ -48,13 +48,14 @@ class GameScene(Scene):
         self.background = pygame.image.load("client/assets/wallpaper.jpg")
         self.race_length = 0
         self.answer_time_limit = 0
+        self.prepare_time_limit = 0
         # For every player, save its nickname as key, and diff points last round, position as values
         self.players: Dict[str, Tuple[int, int]] = {}
         # Fastest player in the last round
         self.fastest_player = None
         # Whether this player is disqualified
         self.is_disqualified = False
-        self.current_state = InGameState.QUESTION
+        self.current_state = InGameState.SHOW_RESULT
         self.just_changed_state = False
 
         self.manager = pygame_gui.UIManager(SCREEN_SIZE)
@@ -86,6 +87,9 @@ class GameScene(Scene):
         )
         self.result_text: Optional[str] = None
         self.announcement_text: Optional[str] = None
+        self.result_number_text: Optional[str] = "Next round in:"
+        self.answer_input.disable()
+        self.button_submit.disable()
 
     def process_input(
         self, ui_events: List[pygame.event.Event], messages: queue.Queue
@@ -147,21 +151,30 @@ class GameScene(Scene):
         except queue.Empty:
             pass
 
+    def switch_state(self, new_state: InGameState) -> None:
+        self.just_changed_state = self.current_state != new_state
+        self.current_state = new_state
+        if new_state == InGameState.QUESTION:
+            self.countdown.set_start_time(self.answer_time_limit)
+            self.countdown.reset()
+        elif new_state == InGameState.SHOW_RESULT:
+            self.countdown.set_start_time(self.prepare_time_limit)
+            self.countdown.reset()
+
     def handle_question_command(self, args):
-        self.countdown.reset()
         round_index, first_number, operator, second_number = args
         self.question_text = f"{first_number} {operator} {second_number} = ?"
-        self.question_number_text = f"Question #{round_index.zfill(2)}"
+        self.question_number_text = (
+            f"Question #{round_index.zfill(2)}/{self.race_length}"
+        )
         self.answer_error = None
         self.answer_success = None
-        self.just_changed_state = self.current_state != InGameState.QUESTION
-        self.current_state = InGameState.QUESTION
+        self.switch_state(InGameState.QUESTION)
 
     def handle_answer_correct_command(self, args):
         answer = args[0]
         self.result_text = f"Correct! The answer is {answer}"
-        self.just_changed_state = self.current_state != InGameState.SHOW_RESULT
-        self.current_state = InGameState.SHOW_RESULT
+        self.switch_state(InGameState.SHOW_RESULT)
 
     def handle_answer_incorrect_command(self, args):
         answer = args[0]
@@ -250,11 +263,8 @@ class GameScene(Scene):
         pygame.draw.rect(screen, box_color, top_right_box)
         pygame.draw.rect(screen, box_color, right_box)
 
-    def draw_countdown(self, screen: pygame.Surface, is_question: bool) -> None:
-        if is_question:
-            countdown_text = f"{max(round(self.countdown.time, 1), 0.0)}"
-        else:
-            countdown_text = "00"
+    def draw_countdown(self, screen: pygame.Surface) -> None:
+        countdown_text = f"{max(round(self.countdown.time, 1), 0.0)}"
         countdown_ui_element = self.label_font.render(
             countdown_text,
             True,
@@ -270,11 +280,11 @@ class GameScene(Scene):
 
         if self.current_state == InGameState.QUESTION:
             self.draw_skeleton(screen)
-            self.draw_countdown(screen, True)
+            self.draw_countdown(screen)
             self.draw_question(screen, screen_width, screen_height)
         elif self.current_state == InGameState.SHOW_RESULT:
             self.draw_skeleton(screen)
-            self.draw_countdown(screen, False)
+            self.draw_countdown(screen)
             self.draw_show_results(screen, screen_width, screen_height)
         elif self.current_state == InGameState.GAME_OVER:
             screen.fill((25, 25, 25))
@@ -364,18 +374,26 @@ class GameScene(Scene):
             )
             screen.blit(
                 announcement_ui_element,
-                announcement_ui_element.get_rect(
-                    center=(screen_width / 2, screen_height / 2 - 100)
-                ),
+                announcement_ui_element.get_rect(left=320, top=screen_height / 2 - 60),
             )
-        result_ui_element = self.body_font.render(
+
+        result_number_ui_element = self.label_font.render(
+            self.result_number_text,
+            True,
+            (255, 255, 255),
+        )
+        screen.blit(
+            result_number_ui_element,
+            result_number_ui_element.get_rect(left=320, top=120),
+        )
+        result_ui_element = self.annoucement_font.render(
             self.result_text,
             True,
             (255, 255, 255),
         )
         screen.blit(
             result_ui_element,
-            result_ui_element.get_rect(center=(screen_width / 2, screen_height / 2)),
+            result_ui_element.get_rect(left=320, top=screen_height / 2 + 40),
         )
 
     def draw_game_over(

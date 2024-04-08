@@ -14,6 +14,7 @@ MIN_PLAYERS = 2
 MAX_RACE_LENGTH = 25
 MIN_RACE_LENGTH = 4
 ANSWER_TIME_LIMIT = 10
+PREPARE_TIME_LIMIT = 5
 
 logging.basicConfig(
     level=logging.INFO,
@@ -57,7 +58,7 @@ class Game:
             # Start the game
             self.state = GameState.PROCESSING
             await client.broadcast(
-                f"GAME_STARTING;{self.race_length};{ANSWER_TIME_LIMIT}"
+                f"GAME_STARTING;{self.race_length};{ANSWER_TIME_LIMIT};{PREPARE_TIME_LIMIT}"
             )
             asyncio.create_task(game.game_loop())
 
@@ -120,6 +121,9 @@ class Game:
             # Generate a new question
             for player in self.player_manager.get_qualified_players():
                 player.reset_new_round()
+
+            self.state = GameState.PROCESSING
+            await asyncio.sleep(PREPARE_TIME_LIMIT)
 
             question: Question = self.question_manager.generate_question()
             LOGGER.info(
@@ -197,7 +201,9 @@ class Game:
 
             # Send the updated scores to all clients
             scores: str = self.player_manager.pack_players_round_info()
-            fastest_player_nickname = fastest_player.nickname if fastest_player else None
+            fastest_player_nickname = (
+                fastest_player.nickname if fastest_player else None
+            )
             await client.broadcast(f"SCORES;{fastest_player_nickname or ''};{scores}")
             # TODO: Wait for a few seconds before starting the next round
 

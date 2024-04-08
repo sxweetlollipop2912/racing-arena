@@ -20,8 +20,10 @@ class QuestionManager:
         self.operators: List[str] = ["+", "-", "*", "/", "%"]
 
     def generate_question(self) -> Question:
-        first_number: int = random.randint(-10000, 10000)
-        second_number: int = random.randint(-10000, 10000)
+        # first_number: int = random.randint(-10000, 10000)
+        # second_number: int = random.randint(-10000, 10000)
+        first_number: int = random.randint(1, 8)
+        second_number: int = random.randint(1, 8)
         operator: str = random.choice(self.operators)
 
         answer: int = 0
