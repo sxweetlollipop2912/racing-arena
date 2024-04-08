@@ -173,6 +173,7 @@ class GameScene(Scene):
 
     def handle_answer_correct_command(self, args):
         answer = args[0]
+        # TODO, make the result not out of the box
         self.result_text = f"Correct! The answer is {answer}"
         self.switch_state(InGameState.SHOW_RESULT)
 
@@ -181,6 +182,7 @@ class GameScene(Scene):
         if self.is_disqualified:
             self.result_text = f"The answer is {answer}"
         else:
+            # TODO, make the result not out of the box
             self.result_text = f"Incorrect! The answer is {answer}"
         self.just_changed_state = self.current_state != InGameState.SHOW_RESULT
         self.current_state = InGameState.SHOW_RESULT
@@ -297,6 +299,7 @@ class GameScene(Scene):
         self, screen: pygame.Surface, screen_width: int, screen_height: int
     ) -> None:
         if self.announcement_text:
+            # TODO: adjust the position of the announcement
             announcement_ui_element = self.announceme.render(
                 self.announcement_text,
                 True,
@@ -367,6 +370,7 @@ class GameScene(Scene):
             self.button_submit.disable()
 
         if self.announcement_text:
+            # TODO: adjust the position of the announcement
             announcement_ui_element = self.annoucement_font.render(
                 self.announcement_text,
                 True,
