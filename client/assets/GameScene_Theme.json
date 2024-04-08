@@ -1,0 +1,78 @@
+{
+    "button": {
+        "colours": {
+            "normal_bg": "#ea7d2a",
+            "hovered_bg": "#d16410",
+            "normal_text": "#000000",
+            "hovered_text": "#ffffff"
+        },
+        "font": {
+            "size": "20",
+            "bold": "0"
+        },
+        "misc": {
+            "shape": "rounded_rectangle",
+            "shape_corner_radius": "5"
+        }
+    },
+    "text_entry_line": {
+        "colours": {
+            "normal_text": "#000000",
+            "dark_bg": "#e2ebf2",
+            "selected_bg": "#e2ebf2",
+            "text_cursor": "#000000"
+        },
+        "misc": {
+            "shape": "rounded_rectangle",
+            "shape_corner_radius": "5"
+        },
+        "font": {
+            "size": "24"
+        }
+    },
+    "text_box": {
+        "colours": {
+            "dark_bg": "#e2ebf2",
+            "normal_text": "#000000"
+        },
+        "misc": {
+            "shape": "rounded_rectangle",
+            "shape_corner_radius": "5",
+            "text_horiz_alignment": "center",
+            "text_vert_alignment": "center"
+        },
+        "font": {
+            "size": "22"
+        }
+    },
+    "#question_display": {
+        "colours": {
+            "dark_bg": "#e2ebf2",
+            "normal_text": "#000000"
+        },
+        "misc": {
+            "shape": "rounded_rectangle",
+            "shape_corner_radius": "5",
+            "text_horiz_alignment": "center",
+            "text_vert_alignment": "center"
+        },
+        "font": {
+            "size": "48"
+        }
+    },
+    "#score_board": {
+        "colours": {
+            "dark_bg": "#e2ebf2",
+            "normal_text": "#000000"
+        },
+        "misc": {
+            "shape": "rounded_rectangle",
+            "shape_corner_radius": "5",
+            "text_horiz_alignment": "center",
+            "text_vert_alignment": "top"
+        },
+        "font": {
+            "size": "20"
+        }        
+    }
+}

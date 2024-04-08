@@ -37,8 +37,7 @@ class GameScene(Scene):
         self.just_changed_state = False
 
         self.manager = pygame_gui.UIManager(SCREEN_SIZE)
-        self.manager.get_theme().load_theme("client/assets/answer_submit_button.json")
-        self.manager.get_theme().load_theme("client/assets/text_entry_line.json")
+        self.manager.get_theme().load_theme("client/assets/GameScene_Theme.json")
 
         # Create font objects
         self.annoucement_font = pygame.font.Font(
@@ -47,21 +46,56 @@ class GameScene(Scene):
         self.annoucement_font.set_bold(False)
         self.body_font = pygame.font.Font("client/assets/Poppins-Regular.ttf", 20)
         self.body_font.set_bold(False)
-
-        self.answer_input = pygame_gui.elements.UITextEntryLine(
-            relative_rect=pygame.Rect((170, 515), (300, 50)),
-            manager=self.manager,
-        )
+        
         self.answer_error: Optional[str] = None
         self.answer_success: Optional[str] = None
         self.question_text: Optional[str] = None
-        self.button_submit = pygame_gui.elements.UIButton(
-            relative_rect=pygame.Rect((470, 515), (150, 50)),
-            text="SUBMIT",
+        
+        self.answer_input = pygame_gui.elements.UITextEntryLine( # Answer input (350, 525) (675, 585)
+            relative_rect=pygame.Rect((350, 525), (325, 60)),
             manager=self.manager,
         )
+        
+        # button_submit_attrs = (SCREEN_SIZE[0] - 80, SCREENSIZE[1] - 35, 70, 30)
+        self.button_submit = pygame_gui.elements.UIButton( # Submit button (680, 525) (785, 585)
+            relative_rect=pygame.Rect((680, 525), (105, 60)),
+            text="ANSWER",
+            manager=self.manager,
+        )
+        
+        # button_map_attrs = (SCREEN_SIZE[0] - 60, 10, 50, 50)
+        self.button_map = pygame_gui.elements.UIButton( # Map button (700, 30) (780, 110)
+            relative_rect=pygame.Rect((700, 30), (80, 80)),
+            text="MAP",
+            manager=self.manager,
+        )
+
+        self.current_round = pygame_gui.elements.UITextBox(
+            relative_rect=pygame.Rect((350, 145), (430, 70)),
+            html_text="Current round: 0/" + str(self.race_length),
+            manager=self.manager,
+        )
+        
+        self.question_display = pygame_gui.elements.UITextBox(
+            relative_rect = pygame.Rect((350, 235), (430, 275)),
+            html_text="8273/1238 = ?",
+            manager=self.manager,
+            object_id="#question_display",
+        )
+        
+        self.score_board = pygame_gui.elements.UITextBox(
+            relative_rect = pygame.Rect((15, 145), (320, 440)),
+            html_text="Player 1: 87123\nPlayer 2: 1231236723",
+            manager=self.manager,
+            object_id="#score_board",
+        )
+        
         self.result_text: Optional[str] = None
         self.announcement_text: Optional[str] = None
+        
+        # self.current_round.set_text("Current round")
+        
+        
 
     def process_input(
         self, ui_events: List[pygame.event.Event], messages: queue.Queue
@@ -194,9 +228,21 @@ class GameScene(Scene):
 
     def update(self, time_delta: float) -> None:
         self.manager.update(time_delta)
+        
+    def draw_Ingame(self, screen: pygame.Surface) -> None:
+        pygame.draw.rect( # road (15, 15), (700, 100)
+            screen, 
+            (226,235,242), 
+            (15, 15, 680, 115),
+            border_radius=5,
+        )
+        
+        # self.manager.draw_ui(screen)
 
     def draw(self, screen: pygame.Surface) -> None:
-        screen.fill((25, 25, 25))
+        self.draw_Ingame(screen)
+        
+        # screen.fill((25, 25, 25))
         # Get the size of the screen
         screen_width, screen_height = pygame.display.get_surface().get_size()
 
