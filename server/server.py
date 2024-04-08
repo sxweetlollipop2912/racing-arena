@@ -144,38 +144,42 @@ class Game:
             # Process the answers and update the scores
             fastest_player: Optional[Player] = None
             fastest_bonus: int = 0
-            for player in self.player_manager.get_qualified_players():
-                nickname: str = player.nickname
-                answer: Optional[int] = player.answer
+            for player in self.player_manager.players.values():
+                if not player.is_disqualified:
+                    nickname: str = player.nickname
+                    answer: Optional[int] = player.answer
 
-                if self.question_manager.check_player_answer(question, answer):
-                    # Correct answer
-                    player.update_state(1)
-                    player.wa_streak = 0
+                    if self.question_manager.check_player_answer(question, answer):
+                        # Correct answer
+                        player.update_state(1)
+                        player.wa_streak = 0
 
-                    await client.write_to_player(
-                        nickname, f"ANSWER_CORRECT;{question.answer}"
-                    )
-                    if (
-                        fastest_player is None
-                        or player.answer_time < fastest_player.answer_time
-                    ):
-                        fastest_player = player
-                    LOGGER.info(
-                        f"[Game Thread] {nickname} answered correctly, position: {player.position}."
-                    )
+                        await client.write_to_player(
+                            nickname, f"ANSWER_CORRECT;{question.answer}"
+                        )
+                        if (
+                            fastest_player is None
+                            or player.answer_time < fastest_player.answer_time
+                        ):
+                            fastest_player = player
+                        LOGGER.info(
+                            f"[Game Thread] {nickname} answered correctly, position: {player.position}."
+                        )
+                    else:
+                        # Incorrect answer
+                        player.update_state(-1)
+                        player.wa_streak += 1
+
+                        fastest_bonus += 1
+                        await client.write_to_player(
+                            nickname, f"ANSWER_INCORRECT;{question.answer}"
+                        )
+                        LOGGER.info(
+                            f"[Game Thread] {nickname} answered incorrectly, position: {player.position}."
+                        )
                 else:
-                    # Incorrect answer
-                    player.update_state(-1)
-                    player.wa_streak += 1
-
-                    fastest_bonus += 1
-                    await client.write_to_player(
-                        nickname, f"ANSWER_INCORRECT;{question.answer}"
-                    )
-                    LOGGER.info(
-                        f"[Game Thread] {nickname} answered incorrectly, position: {player.position}."
-                    )
+                    nickname: str = player.nickname
+                    await client.write_to_player(nickname, f"ANSWER;{question.answer}")
 
             # Add bonus score for the fastest player
             if fastest_player is not None:

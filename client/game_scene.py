@@ -145,6 +145,8 @@ class GameScene(Scene):
                     self.handle_answer_correct_command(args)
                 elif cmd == "ANSWER_INCORRECT":
                     self.handle_answer_incorrect_command(args)
+                elif cmd == "ANSWER":
+                    self.handle_answer_disqualified_command(args)
                 elif cmd == "ANSWER_FAILURE":
                     self.handle_answer_failure_command(args)
                 elif cmd == "DISQUALIFICATION":
@@ -184,12 +186,14 @@ class GameScene(Scene):
 
     def handle_answer_incorrect_command(self, args):
         answer = args[0]
-        print(self.is_disqualified)
-        if self.is_disqualified:
-            self.result_text = f"The answer is {answer}"
-        else:
-            # TODO, make the result not out of the box
-            self.result_text = f"Incorrect! The answer is {answer}"
+        # TODO, make the result not out of the box
+        self.result_text = f"Incorrect! The answer is {answer}"
+        self.switch_state(InGameState.SHOW_RESULT)
+
+    def handle_answer_disqualified_command(self, args):
+        answer = args[0]
+        # TODO, make the result not out of the box
+        self.result_text = f"The answer is {answer}"
         self.switch_state(InGameState.SHOW_RESULT)
 
     def handle_answer_failure_command(self, args):
