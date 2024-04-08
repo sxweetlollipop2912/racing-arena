@@ -106,7 +106,6 @@ class LobbyScene(Scene):
         self.manager.update(time_delta)
 
     def draw(self, screen: pygame.Surface):
-        # hex ee9755
         screen.fill((0, 0, 0))
         screen.blit(self.background, (0, 0))
         text = self.font.render("Waiting for other players...", True, (255, 255, 255))
@@ -153,14 +152,12 @@ class LobbyScene(Scene):
             if player.is_ready:
                 # 00BFA5
                 pygame.draw.rect(screen, (0, 200, 0), status_box_rect)
-                player_status = self.player_font.render("Ready", True, status_box_color)
+                player_status = self.player_font.render("Ready", True, (0, 0, 0))
                 if player.nickname == globals.current_nickname:
                     self.button_ready.set_text("UNREADY")
             else:
                 pygame.draw.rect(screen, (255, 0, 0), status_box_rect)
-                player_status = self.player_font.render(
-                    "Not Ready", True, status_box_color
-                )
+                player_status = self.player_font.render("Not Ready", True, (0, 0, 0))
                 if player.nickname == globals.current_nickname:
                     self.button_ready.set_text("READY")
             player_status_rect = player_status.get_rect(center=status_box_rect.center)
