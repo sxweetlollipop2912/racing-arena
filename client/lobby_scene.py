@@ -98,7 +98,7 @@ class LobbyScene(Scene):
                     next_scene.race_length = race_length
                     next_scene.answer_time_limit = answer_time_limit
                     next_scene.prepare_time_limit = prepare_time_limit
-                    next_scene.countdown.set_start_time(answer_time_limit)
+                    next_scene.countdown.set_start_time(prepare_time_limit)
                     return next_scene
         except queue.Empty:
             pass

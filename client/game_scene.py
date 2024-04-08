@@ -1,4 +1,5 @@
 # TODO: Show scores, countdown
+import re
 import pygame
 import pygame_gui
 import queue
@@ -29,6 +30,7 @@ class Countdown:
 
     def set_start_time(self, start_time: float) -> None:
         self.start_time = start_time
+        self.reset()
 
     def update(self, dt: float) -> None:
         if self.time - dt > 0:
@@ -63,12 +65,16 @@ class GameScene(Scene):
         self.manager.get_theme().load_theme("client/assets/text_entry_line.json")
 
         # Create font objects
-        self.annoucement_font = pygame.font.Font(
+        self.announcement_font = pygame.font.Font(
             "client/assets/Poppins-Regular.ttf", 42
         )
-        self.annoucement_font.set_bold(False)
+        self.announcement_font.set_bold(False)
         self.label_font = pygame.font.Font("client/assets/Poppins-Regular.ttf", 36)
         self.label_font.set_bold(False)
+        self.disqualified_font = pygame.font.Font(
+            "client/assets/Poppins-Regular.ttf", 20
+        )
+        self.disqualified_font.set_bold(False)
         self.body_font = pygame.font.Font("client/assets/Poppins-Regular.ttf", 20)
         self.body_font.set_bold(False)
 
@@ -110,14 +116,15 @@ class GameScene(Scene):
                             LOGGER.info(
                                 f"[UI Thread] [In Game] User submit answer: {answer}"
                             )
-                            if not answer.isdigit():
-                                self.answer_success = None
-                                self.answer_error = "Answer must be a number."
-                            else:
+
+                            if re.match(r"^[-+]*\d+$", answer):
                                 self.answer_error = None
                                 self.answer_success = "Answer submitted."
                                 loop = asyncio.new_event_loop()
                                 loop.run_until_complete(connection.send_answer(answer))
+                            else:
+                                self.answer_success = None
+                                self.answer_error = "Answer must be an integer."
 
                         elif self.current_state == InGameState.GAME_OVER:
                             loop = asyncio.new_event_loop()
@@ -156,10 +163,8 @@ class GameScene(Scene):
         self.current_state = new_state
         if new_state == InGameState.QUESTION:
             self.countdown.set_start_time(self.answer_time_limit)
-            self.countdown.reset()
         elif new_state == InGameState.SHOW_RESULT:
             self.countdown.set_start_time(self.prepare_time_limit)
-            self.countdown.reset()
 
     def handle_question_command(self, args):
         round_index, first_number, operator, second_number = args
@@ -179,13 +184,13 @@ class GameScene(Scene):
 
     def handle_answer_incorrect_command(self, args):
         answer = args[0]
+        print(self.is_disqualified)
         if self.is_disqualified:
             self.result_text = f"The answer is {answer}"
         else:
             # TODO, make the result not out of the box
             self.result_text = f"Incorrect! The answer is {answer}"
-        self.just_changed_state = self.current_state != InGameState.SHOW_RESULT
-        self.current_state = InGameState.SHOW_RESULT
+        self.switch_state(InGameState.SHOW_RESULT)
 
     def handle_answer_failure_command(self, args):
         self.answer_error = args[0]
@@ -197,9 +202,7 @@ class GameScene(Scene):
         if globals.current_nickname in args:
             self.announcement_text = "You have been disqualified!"
             self.is_disqualified = True
-        self.just_changed_state = self.current_state != InGameState.SHOW_RESULT
-        self.current_state = InGameState.SHOW_RESULT
-        self.update_scoreboard_ui()
+        self.switch_state(InGameState.SHOW_RESULT)
 
     def handle_score_command(self, args):
         self.fastest_player, *rest = args
@@ -210,9 +213,7 @@ class GameScene(Scene):
                 if self.players[player][1] != -1
             }
         )
-        self.just_changed_state = self.current_state != InGameState.SHOW_RESULT
-        self.current_state = InGameState.SHOW_RESULT
-        self.update_scoreboard_ui()
+        self.switch_state(InGameState.SHOW_RESULT)
 
     def handle_game_over_command(self, args):
         winner = args[0] if len(args) > 0 else None
@@ -229,11 +230,6 @@ class GameScene(Scene):
     def handle_player_left_command(self, args):
         nickname = args[0]
         self.players[nickname][1] = -1
-        self.update_scoreboard_ui()
-
-    def update_scoreboard_ui(self):
-        # Draw the lanes
-        pass
 
     def update(self, time_delta: float) -> None:
         self.manager.update(time_delta)
@@ -243,7 +239,7 @@ class GameScene(Scene):
         screen.fill((0, 0, 0))
         screen.blit(self.background, (0, 0))
         screen_width, screen_height = pygame.display.get_surface().get_size()
-        # Draw the leaderboard box
+
         box_color = (25, 25, 25)
         padding = 20
         height = 480
@@ -277,39 +273,41 @@ class GameScene(Scene):
             countdown_ui_element.get_rect(left=700, top=120),
         )
 
+    def draw_leaderboard(self, screen: pygame.Surface) -> None:
+        screen_width, screen_height = pygame.display.get_surface().get_size()
+
     def draw(self, screen: pygame.Surface) -> None:
         screen_width, screen_height = pygame.display.get_surface().get_size()
 
         if self.current_state == InGameState.QUESTION:
             self.draw_skeleton(screen)
             self.draw_countdown(screen)
-            self.draw_question(screen, screen_width, screen_height)
+            self.draw_leaderboard(screen)
+            self.draw_question(screen)
         elif self.current_state == InGameState.SHOW_RESULT:
             self.draw_skeleton(screen)
             self.draw_countdown(screen)
-            self.draw_show_results(screen, screen_width, screen_height)
+            self.draw_leaderboard(screen)
+            self.draw_show_results(screen)
         elif self.current_state == InGameState.GAME_OVER:
             screen.fill((25, 25, 25))
-            self.draw_game_over(screen, screen_width, screen_height)
+            self.draw_game_over(screen)
 
         self.just_changed_state = False
         self.manager.draw_ui(screen)
 
-    def draw_question(
-        self, screen: pygame.Surface, screen_width: int, screen_height: int
-    ) -> None:
+    def draw_question(self, screen: pygame.Surface) -> None:
+        screen_width, screen_height = pygame.display.get_surface().get_size()
         if self.announcement_text:
             # TODO: adjust the position of the announcement
-            announcement_ui_element = self.announceme.render(
+            announcement_ui_element = self.disqualified_font.render(
                 self.announcement_text,
                 True,
-                (255, 255, 255),
+                (255, 0, 0),
             )
             screen.blit(
                 announcement_ui_element,
-                announcement_ui_element.get_rect(
-                    center=(screen_width / 2, screen_height / 2 - 100)
-                ),
+                announcement_ui_element.get_rect(left=320, top=screen_height / 2 - 60),
             )
         question_number_ui_element = self.label_font.render(
             self.question_number_text,
@@ -320,7 +318,7 @@ class GameScene(Scene):
             question_number_ui_element,
             question_number_ui_element.get_rect(left=320, top=120),
         )
-        question_ui_element = self.annoucement_font.render(
+        question_ui_element = self.announcement_font.render(
             self.question_text,
             True,
             (255, 255, 255),
@@ -362,19 +360,18 @@ class GameScene(Scene):
             self.answer_input.disable()
             self.button_submit.disable()
 
-    def draw_show_results(
-        self, screen: pygame.Surface, screen_width: int, screen_height: int
-    ) -> None:
+    def draw_show_results(self, screen: pygame.Surface) -> None:
+        screen_width, screen_height = pygame.display.get_surface().get_size()
         if self.just_changed_state:
             self.answer_input.disable()
             self.button_submit.disable()
 
         if self.announcement_text:
             # TODO: adjust the position of the announcement
-            announcement_ui_element = self.annoucement_font.render(
+            announcement_ui_element = self.disqualified_font.render(
                 self.announcement_text,
                 True,
-                (255, 255, 255),
+                (255, 0, 0),
             )
             screen.blit(
                 announcement_ui_element,
@@ -390,7 +387,7 @@ class GameScene(Scene):
             result_number_ui_element,
             result_number_ui_element.get_rect(left=320, top=120),
         )
-        result_ui_element = self.annoucement_font.render(
+        result_ui_element = self.label_font.render(
             self.result_text,
             True,
             (255, 255, 255),
@@ -400,9 +397,8 @@ class GameScene(Scene):
             result_ui_element.get_rect(left=320, top=screen_height / 2 + 40),
         )
 
-    def draw_game_over(
-        self, screen: pygame.Surface, screen_width: int, screen_height: int
-    ) -> None:
+    def draw_game_over(self, screen: pygame.Surface) -> None:
+        screen_width, screen_height = pygame.display.get_surface().get_size()
         if self.just_changed_state:
             self.answer_input.kill()
             self.button_submit.kill()
@@ -414,7 +410,7 @@ class GameScene(Scene):
             self.button_submit.enable()
             self.answer_error = None
 
-        announcement_ui_element = self.annoucement_font.render(
+        announcement_ui_element = self.announcement_font.render(
             self.announcement_text,
             True,
             (255, 255, 255),
