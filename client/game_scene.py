@@ -21,7 +21,7 @@ class InGameState(Enum):
     QUESTION = 1
     SHOW_RESULT = 2
     GAME_OVER = 3
-
+    # ROAD_MAP = 4
 
 class Countdown:
     def __init__(self, start_time: float):
@@ -89,6 +89,11 @@ class GameScene(Scene):
         self.button_submit = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect((630, 530), (150, 50)),
             text="SUBMIT",
+            manager=self.manager,
+        )
+        self.button_map = pygame_gui.elements.UIButton(
+            relative_rect=pygame.Rect((720, 15), (65, 65)),
+            text="MAP",
             manager=self.manager,
         )
         self.result_text: Optional[str] = None
@@ -210,7 +215,6 @@ class GameScene(Scene):
 
     def handle_score_command(self, args):
         self.fastest_player, *rest = args
-        print(f"Inside handle_score_command: args {rest[0]}, {rest[1]}")
         for player_points in rest:
             player, diff_points, score = player_points.split(",")
             if player not in self.players or self.players[player][1] != -1:
@@ -457,7 +461,21 @@ class GameScene(Scene):
                     ),
                 ),
             )
-
+    
+    def draw_lane(self, screen: pygame.Surface) -> None:
+        # Draw the lane
+        lane = pygame.image.load("client/assets/lane.jpg")
+        lane = pygame.transform.scale(lane, (690, 80))
+        screen.blit(lane, lane.get_rect(top = 10, left = 20, width = 690, height = 90))
+        
+        # Draw the car
+        car = pygame.image.load("client/assets/sprites/orange_car.png")
+        car = pygame.transform.scale(car, (64, 64))
+        # get car top (x position)
+        # x = (690 - 60) * (maxpoint / currentpoint)
+        screen.blit(car, car.get_rect(top = 18, left = 20, width = 64, height = 64))
+        
+        
     def draw(self, screen: pygame.Surface) -> None:
         screen_width, screen_height = pygame.display.get_surface().get_size()
 
@@ -466,6 +484,7 @@ class GameScene(Scene):
             self.draw_countdown(screen)
             self.draw_leaderboard(screen)
             self.draw_question(screen)
+            self.draw_lane(screen)
         elif self.current_state == InGameState.SHOW_RESULT:
             self.draw_skeleton(screen)
             self.draw_countdown(screen)
@@ -474,6 +493,8 @@ class GameScene(Scene):
         elif self.current_state == InGameState.GAME_OVER:
             screen.fill((25, 25, 25))
             self.draw_game_over(screen)
+        # elif self.current_state == InGameState.ROAD_MAP:
+        #    self.draw_road_map(screen)
 
         self.just_changed_state = False
         self.manager.draw_ui(screen)
@@ -584,6 +605,7 @@ class GameScene(Scene):
         if self.just_changed_state:
             self.answer_input.kill()
             self.button_submit.kill()
+            self.button_map.kill()
             self.button_submit = pygame_gui.elements.UIButton(
                 relative_rect=pygame.Rect((screen_width / 2 - 75, 515), (150, 50)),
                 text="PLAY AGAIN?",
@@ -603,6 +625,13 @@ class GameScene(Scene):
                 center=(screen_width / 2, screen_height / 2)
             ),
         )
+        
+    def draw_road_map(self, screen: pygame.Surface) -> None:
+        # Draw the road map
+        lane = pygame.image.load("client/assets/lane.jpg")
+        lane = pygame.transform.scale(lane, (601, 72))
+        for i in (0, 10):
+            screen.blit(lane, lane.get_rect(top = 75 + i * 72, left = 100, width = 601, height = 72))
 
 
 def limit_text_width(text, max_width, font):
