@@ -472,7 +472,7 @@ class GameScene(Scene):
         car = pygame.image.load("client/assets/sprites/orange_car.png")
         car = pygame.transform.scale(car, (64, 64))
         # get car top (x position)
-        # x = (690 - 60) * (maxpoint / currentpoint)
+        # x = 20 + (690 - 60) * (maxpoint / currentpoint)
         screen.blit(car, car.get_rect(top = 18, left = 20, width = 64, height = 64))
         
         
@@ -490,6 +490,7 @@ class GameScene(Scene):
             self.draw_countdown(screen)
             self.draw_leaderboard(screen)
             self.draw_show_results(screen)
+            self.draw_lane(screen)
         elif self.current_state == InGameState.GAME_OVER:
             screen.fill((25, 25, 25))
             self.draw_game_over(screen)
