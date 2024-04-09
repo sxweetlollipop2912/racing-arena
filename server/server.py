@@ -13,8 +13,8 @@ MAX_PLAYERS = 10
 MIN_PLAYERS = 2
 MAX_RACE_LENGTH = 25
 MIN_RACE_LENGTH = 4
-ANSWER_TIME_LIMIT = 5
-PREPARE_TIME_LIMIT = 2
+ANSWER_TIME_LIMIT = 10
+PREPARE_TIME_LIMIT = 3
 
 logging.basicConfig(
     level=logging.INFO,
@@ -339,7 +339,7 @@ class ClientManager:
             writer.close()
 
 
-game: Game = Game(10, 500)
+game: Game = Game(10, 10)
 client: ClientManager = ClientManager()
 address = ("localhost", 54321)
 loop = asyncio.get_event_loop()

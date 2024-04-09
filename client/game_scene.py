@@ -294,9 +294,9 @@ class GameScene(Scene):
         )
 
     def draw_leaderboard(self, screen: pygame.Surface) -> None:
-        # qualified_players = [(nickname, self.players[nickname]) for nickname in self.players if self.players[nickname][1] >= 0]
-        # disqualified_players = [(nickname, self.players[nickname]) for nickname in self.players if self.players[nickname][1] < 0]
-        # qualified_players.sort(key=lambda x: x[1][1], reverse=True)
+        qualified_players = [(nickname, self.players[nickname]) for nickname in self.players if self.players[nickname][1] >= 0]
+        disqualified_players = [(nickname, self.players[nickname]) for nickname in self.players if self.players[nickname][1] < 0]
+        qualified_players.sort(key=lambda x: x[1][1], reverse=True)
 
         # mock data
         """qualified_players = [
@@ -313,8 +313,8 @@ class GameScene(Scene):
             ("p9", (-1, 900)),
             ("p10", (-1, 1000)),
         ]"""
-        qualified_players.sort(key=lambda x: x[1][1], reverse=True)
-        disqualified_players.sort(key=lambda x: x[0])
+        # qualified_players.sort(key=lambda x: x[1][1], reverse=True)
+        # disqualified_players.sort(key=lambda x: x[0])
 
         screen_width, screen_height = pygame.display.get_surface().get_size()
         # fixed size copied from draw_skeleton()
@@ -486,8 +486,9 @@ class GameScene(Scene):
         car = pygame.image.load("client/assets/sprites/orange_car.png")
         car = pygame.transform.scale(car, (64, 64))
         # get car top (x position)
-        # x = (690 - 60) * (maxpoint / currentpoint)
-        screen.blit(car, car.get_rect(top = 18, left = 20, width = 64, height = 64))
+        player = self.players[globals.current_nickname]
+        x = 20 + (690 - 60) * (player[1] / self.race_length)
+        screen.blit(car, car.get_rect(top = 18, left = x, width = 64, height = 64))
         
         
     def draw(self, screen: pygame.Surface) -> None:
