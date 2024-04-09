@@ -91,11 +91,19 @@ class GameScene(Scene):
             text="SUBMIT",
             manager=self.manager,
         )
+        self.manager.get_theme().load_theme("client/assets/map_button.json")
+        self.button_map = pygame_gui.elements.UIButton(
+            relative_rect=pygame.Rect((710, 20), (70, 70)),
+            text="MAP",
+            manager=self.manager,
+        )
         self.result_text: Optional[str] = None
         self.announcement_text: Optional[str] = None
         self.result_number_text: Optional[str] = "Next round in:"
         self.answer_input.disable()
         self.button_submit.disable()
+        self.show_map = False
+        self.init_map()
 
     def process_input(
         self, ui_events: List[pygame.event.Event], messages: queue.Queue
@@ -135,6 +143,17 @@ class GameScene(Scene):
                                 f"[UI Thread] [In Game] User wants to play again as {globals.current_nickname}"
                             )
                             return registration_scene.RegistrationScene()
+                    if event.ui_element == self.button_map:
+                        LOGGER.info(
+                            f"[UI Thread] [In Game] User pressed button {event.ui_element}"
+                        )
+                        self.show_map = not self.show_map
+                        if self.show_map:
+                            self.button_submit.hide()
+                            self.answer_input.hide()
+                        else:
+                            self.button_submit.show()
+                            self.answer_input.show()
 
         try:
             while message := messages.get(block=False):
@@ -210,7 +229,6 @@ class GameScene(Scene):
 
     def handle_score_command(self, args):
         self.fastest_player, *rest = args
-        print(f"Inside handle_score_command: args {rest[0]}, {rest[1]}")
         for player_points in rest:
             player, diff_points, score = player_points.split(",")
             if player not in self.players or self.players[player][1] != -1:
@@ -460,22 +478,24 @@ class GameScene(Scene):
 
     def draw(self, screen: pygame.Surface) -> None:
         screen_width, screen_height = pygame.display.get_surface().get_size()
+        if self.show_map:
+            self.draw_map(screen)
+        else:
+            if self.current_state == InGameState.QUESTION:
+                self.draw_skeleton(screen)
+                self.draw_countdown(screen)
+                self.draw_leaderboard(screen)
+                self.draw_question(screen)
+            elif self.current_state == InGameState.SHOW_RESULT:
+                self.draw_skeleton(screen)
+                self.draw_countdown(screen)
+                self.draw_leaderboard(screen)
+                self.draw_show_results(screen)
+            elif self.current_state == InGameState.GAME_OVER:
+                screen.fill((25, 25, 25))
+                self.draw_game_over(screen)
+            self.just_changed_state = False
 
-        if self.current_state == InGameState.QUESTION:
-            self.draw_skeleton(screen)
-            self.draw_countdown(screen)
-            self.draw_leaderboard(screen)
-            self.draw_question(screen)
-        elif self.current_state == InGameState.SHOW_RESULT:
-            self.draw_skeleton(screen)
-            self.draw_countdown(screen)
-            self.draw_leaderboard(screen)
-            self.draw_show_results(screen)
-        elif self.current_state == InGameState.GAME_OVER:
-            screen.fill((25, 25, 25))
-            self.draw_game_over(screen)
-
-        self.just_changed_state = False
         self.manager.draw_ui(screen)
 
     def draw_question(self, screen: pygame.Surface) -> None:
@@ -603,6 +623,12 @@ class GameScene(Scene):
                 center=(screen_width / 2, screen_height / 2)
             ),
         )
+
+    def init_map(self) -> None:
+        pass
+
+    def draw_map(self, screen: pygame.Surface) -> None:
+        screen.fill((255, 255, 255))
 
 
 def limit_text_width(text, max_width, font):
