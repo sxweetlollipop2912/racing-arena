@@ -32,7 +32,7 @@ class Player:
         tmp: int = self.position
         self.position += received_points
         self.position = max(1, self.position)
-        self.diff_points = self.position - tmp
+        self.diff_points += self.position - tmp
 
 
 class PlayerManager:

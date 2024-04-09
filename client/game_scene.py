@@ -52,7 +52,7 @@ class GameScene(Scene):
         self.answer_time_limit = 0
         self.prepare_time_limit = 0
         # For every player, save its nickname as key, and diff points last round, position as values
-        self.players: Dict[str, Tuple[int, int]] = {}
+        self.players: Dict[str, List[int, int]] = {}
         # Fastest player in the last round
         self.fastest_player = None
         # Whether this player is disqualified
@@ -151,7 +151,7 @@ class GameScene(Scene):
                     self.handle_answer_failure_command(args)
                 elif cmd == "DISQUALIFICATION":
                     self.handle_disqualification_command(args)
-                elif cmd == "SCORE":
+                elif cmd == "SCORES":
                     self.handle_score_command(args)
                 elif cmd == "GAME_OVER":
                     self.handle_game_over_command(args)
@@ -210,13 +210,11 @@ class GameScene(Scene):
 
     def handle_score_command(self, args):
         self.fastest_player, *rest = args
-        self.players.update(
-            {
-                player: (diff_points, score)
-                for player, diff_points, score in zip(rest[::3], rest[1::3], rest[2::3])
-                if self.players[player][1] != -1
-            }
-        )
+        print(f"Inside handle_score_command: args {rest[0]}, {rest[1]}")
+        for player_points in rest:
+            player, diff_points, score = player_points.split(",")
+            if player not in self.players or self.players[player][1] != -1:
+                self.players[player] = [int(diff_points), int(score)]
         self.switch_state(InGameState.SHOW_RESULT)
 
     def handle_game_over_command(self, args):
@@ -278,7 +276,187 @@ class GameScene(Scene):
         )
 
     def draw_leaderboard(self, screen: pygame.Surface) -> None:
+        # qualified_players = [(nickname, self.players[nickname]) for nickname in self.players if self.players[nickname][1] >= 0]
+        # disqualified_players = [(nickname, self.players[nickname]) for nickname in self.players if self.players[nickname][1] < 0]
+        # qualified_players.sort(key=lambda x: x[1][1], reverse=True)
+
+        # mock data
+        qualified_players = [
+            ("p1", (1, 100)),
+            ("p2", (-10, 200)),
+            ("p3", (-3, 300)),
+            ("p4", (4, 400)),
+            ("p5", (5, 500)),
+            ("p6", (-1, 600)),
+            ("p7", (7, 700)),
+        ]
+        disqualified_players = [
+            ("p8", (-1, 800)),
+            ("p9", (-1, 900)),
+            ("p10", (-1, 1000)),
+        ]
+        qualified_players.sort(key=lambda x: x[1][1], reverse=True)
+        disqualified_players.sort(key=lambda x: x[0])
+
         screen_width, screen_height = pygame.display.get_surface().get_size()
+        # fixed size copied from draw_skeleton()
+        outside_padding = 20
+        outside_gap = 10
+        inside_padding = 10
+        inside_height = 480 - inside_padding * 2
+        inside_width = (
+            screen_width - 2 * outside_padding - outside_gap
+        ) / 3 - 2 * inside_padding
+        box_rect = pygame.Rect(
+            outside_padding + inside_padding,
+            100 + inside_padding,
+            inside_width,
+            inside_height,
+        )
+
+        column_gap = 10
+        column_width = (inside_width - 2 * column_gap) / 3
+        column_1_box_rect = pygame.Rect(
+            box_rect.left, box_rect.top, column_width, inside_height
+        )
+        column_2_box_rect = pygame.Rect(
+            box_rect.left + column_width + column_gap,
+            box_rect.top,
+            column_width,
+            inside_height,
+        )
+        column_3_box_rect = pygame.Rect(
+            box_rect.left + 2 * column_width + 2 * column_gap,
+            box_rect.top,
+            column_width,
+            inside_height,
+        )
+
+        strike_body_font = pygame.font.Font("client/assets/Poppins-Regular.ttf", 20)
+        strike_body_font.set_strikethrough(True)
+
+        ###############
+        # Draw nicknames on first column
+        ###############
+        i: int = -1
+        for nickname, (_, score) in qualified_players:
+            i += 1
+            if i > 0:
+                column_1_box_rect.y += inside_height / 10
+            if nickname == globals.current_nickname:
+                pygame.draw.rect(
+                    screen,
+                    (125, 58, 6),
+                    pygame.Rect(
+                        column_1_box_rect.left,
+                        column_1_box_rect.top,
+                        inside_width,
+                        inside_height / 10,
+                    ),
+                )
+            player_name = self.body_font.render(
+                limit_text_width(f"{nickname}", column_width, self.label_font),
+                True,
+                (230, 230, 230),
+            )
+            screen.blit(
+                player_name,
+                player_name.get_rect(
+                    center=(
+                        column_1_box_rect.centerx,
+                        column_1_box_rect.top + inside_height / 20,
+                    ),
+                ),
+            )
+
+        for nickname, (_, score) in disqualified_players:
+            i += 1
+            if i > 0:
+                column_1_box_rect.y += inside_height / 10
+            if nickname == globals.current_nickname:
+                pygame.draw.rect(
+                    screen,
+                    (125, 58, 6),
+                    pygame.Rect(
+                        column_1_box_rect.left,
+                        column_1_box_rect.top,
+                        inside_width,
+                        inside_height / 10,
+                    ),
+                )
+            player_name = strike_body_font.render(
+                limit_text_width(f"{nickname}", column_width, self.label_font),
+                True,
+                (135, 134, 134),
+            )
+            screen.blit(
+                player_name,
+                player_name.get_rect(
+                    center=(
+                        column_1_box_rect.centerx,
+                        column_1_box_rect.top + inside_height / 20,
+                    ),
+                ),
+            )
+
+        ###############
+        # Draw score on second column
+        ###############
+        i = -1
+        for nickname, (_, score) in qualified_players:
+            i += 1
+            if i > 0:
+                column_2_box_rect.y += inside_height / 10
+            player_score = self.body_font.render(
+                f"{score}",
+                True,
+                (230, 230, 230),
+            )
+            screen.blit(
+                player_score,
+                player_score.get_rect(
+                    center=(
+                        column_2_box_rect.centerx,
+                        column_2_box_rect.top + inside_height / 20,
+                    ),
+                ),
+            )
+
+        ###############
+        # Draw diff points on third column
+        ###############
+        i = -1
+        for nickname, (diff_points, _) in qualified_players:
+            i += 1
+            if i > 0:
+                column_3_box_rect.y += inside_height / 10
+            if diff_points > 0:
+                player_diff_points = self.body_font.render(
+                    f"+{diff_points}",
+                    True,
+                    (0, 200, 0),
+                )
+            elif diff_points < 0:
+                player_diff_points = self.body_font.render(
+                    f"{diff_points}",
+                    True,
+                    (200, 0, 0),
+                )
+            else:
+                player_diff_points = self.body_font.render(
+                    f"{diff_points}",
+                    True,
+                    (230, 230, 230),
+                )
+            screen.blit(
+                player_diff_points,
+                player_diff_points.get_rect(
+                    center=(
+                        column_3_box_rect.centerx,
+                        column_3_box_rect.top + inside_height / 20,
+                    ),
+                ),
+            )
 
     def draw(self, screen: pygame.Surface) -> None:
         screen_width, screen_height = pygame.display.get_surface().get_size()
@@ -425,3 +603,13 @@ class GameScene(Scene):
                 center=(screen_width / 2, screen_height / 2)
             ),
         )
+
+
+def limit_text_width(text, max_width, font):
+    width, _ = font.size(text)
+    if width > max_width:
+        while width > max_width:
+            text = text[:-1]
+            width, _ = font.size(text + "...")
+        text += "..."
+    return text

@@ -94,7 +94,7 @@ class LobbyScene(Scene):
                     answer_time_limit = int(answer_time_limit)
                     prepare_time_limit = int(prepare_time_limit)
                     next_scene = GameScene()
-                    next_scene.players = {nickname: (0, 0) for nickname in self.players}
+                    next_scene.players = {player.nickname: [0, 1] for player in self.players}
                     next_scene.race_length = race_length
                     next_scene.answer_time_limit = answer_time_limit
                     next_scene.prepare_time_limit = prepare_time_limit
