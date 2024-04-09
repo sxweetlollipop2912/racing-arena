@@ -91,8 +91,9 @@ class GameScene(Scene):
             text="SUBMIT",
             manager=self.manager,
         )
+        self.manager.get_theme().load_theme("client/assets/map_button.json")
         self.button_map = pygame_gui.elements.UIButton(
-            relative_rect=pygame.Rect((720, 15), (65, 65)),
+            relative_rect=pygame.Rect((710, 20), (70, 70)),
             text="MAP",
             manager=self.manager,
         )
@@ -101,6 +102,8 @@ class GameScene(Scene):
         self.result_number_text: Optional[str] = "Next round in:"
         self.answer_input.disable()
         self.button_submit.disable()
+        self.show_map = False
+        self.init_map()
 
     def process_input(
         self, ui_events: List[pygame.event.Event], messages: queue.Queue
@@ -140,6 +143,17 @@ class GameScene(Scene):
                                 f"[UI Thread] [In Game] User wants to play again as {globals.current_nickname}"
                             )
                             return registration_scene.RegistrationScene()
+                    if event.ui_element == self.button_map:
+                        LOGGER.info(
+                            f"[UI Thread] [In Game] User pressed button {event.ui_element}"
+                        )
+                        self.show_map = not self.show_map
+                        if self.show_map:
+                            self.button_submit.hide()
+                            self.answer_input.hide()
+                        else:
+                            self.button_submit.show()
+                            self.answer_input.show()
 
         try:
             while message := messages.get(block=False):
@@ -285,7 +299,7 @@ class GameScene(Scene):
         # qualified_players.sort(key=lambda x: x[1][1], reverse=True)
 
         # mock data
-        qualified_players = [
+        """qualified_players = [
             ("p1", (1, 100)),
             ("p2", (-10, 200)),
             ("p3", (-3, 300)),
@@ -298,7 +312,7 @@ class GameScene(Scene):
             ("p8", (-1, 800)),
             ("p9", (-1, 900)),
             ("p10", (-1, 1000)),
-        ]
+        ]"""
         qualified_players.sort(key=lambda x: x[1][1], reverse=True)
         disqualified_players.sort(key=lambda x: x[0])
 
@@ -478,25 +492,26 @@ class GameScene(Scene):
         
     def draw(self, screen: pygame.Surface) -> None:
         screen_width, screen_height = pygame.display.get_surface().get_size()
+        if self.show_map:
+            self.draw_map(screen)
+        else:
+            if self.current_state == InGameState.QUESTION:
+                self.draw_skeleton(screen)
+                self.draw_countdown(screen)
+                self.draw_leaderboard(screen)
+                self.draw_question(screen)
+                self.draw_lane(screen)
+            elif self.current_state == InGameState.SHOW_RESULT:
+                self.draw_skeleton(screen)
+                self.draw_countdown(screen)
+                self.draw_leaderboard(screen)
+                self.draw_show_results(screen)
+                self.draw_lane(screen)
+            elif self.current_state == InGameState.GAME_OVER:
+                screen.fill((25, 25, 25))
+                self.draw_game_over(screen)
+            self.just_changed_state = False
 
-        if self.current_state == InGameState.QUESTION:
-            self.draw_skeleton(screen)
-            self.draw_countdown(screen)
-            self.draw_leaderboard(screen)
-            self.draw_question(screen)
-            self.draw_lane(screen)
-        elif self.current_state == InGameState.SHOW_RESULT:
-            self.draw_skeleton(screen)
-            self.draw_countdown(screen)
-            self.draw_leaderboard(screen)
-            self.draw_show_results(screen)
-        elif self.current_state == InGameState.GAME_OVER:
-            screen.fill((25, 25, 25))
-            self.draw_game_over(screen)
-        # elif self.current_state == InGameState.ROAD_MAP:
-        #    self.draw_road_map(screen)
-
-        self.just_changed_state = False
         self.manager.draw_ui(screen)
 
     def draw_question(self, screen: pygame.Surface) -> None:
@@ -630,8 +645,18 @@ class GameScene(Scene):
         # Draw the road map
         lane = pygame.image.load("client/assets/lane.jpg")
         lane = pygame.transform.scale(lane, (601, 72))
+        car = pygame.image.load("client/assets/sprites/orange_car.png")
+        car = pygame.transform.scale(car, (64, 64))
         for i in (0, 10):
             screen.blit(lane, lane.get_rect(top = 75 + i * 72, left = 100, width = 601, height = 72))
+            screen.blit
+
+    def init_map(self) -> None:
+        pass
+
+    def draw_map(self, screen: pygame.Surface) -> None:
+        screen.fill((255, 255, 255))
+        self.draw_road_map(screen)
 
 
 def limit_text_width(text, max_width, font):
