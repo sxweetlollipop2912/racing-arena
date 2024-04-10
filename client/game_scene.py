@@ -483,7 +483,13 @@ class GameScene(Scene):
         screen.blit(lane, lane.get_rect(top = 10, left = 20, width = 690, height = 90))
         
         # Draw the car
-        car = pygame.image.load("client/assets/sprites/orange_car.png")
+        car_name = ["orange_car.png", "blue_car.png", "green-car.png", "red-car.png", "yellow_car.png", "purple_car.png", "lime_car.png", "pink_car.png", "black_car.png", "skin_car.png"]
+        index = 0
+        for nickname in self.players.keys():
+            if nickname == globals.current_nickname:
+                break
+            index += 1
+        car = pygame.image.load("client/assets/sprites/" + car_name[index])
         car = pygame.transform.scale(car, (64, 64))
         # get car top (x position)
         player = self.players[globals.current_nickname]
@@ -644,13 +650,31 @@ class GameScene(Scene):
         
     def draw_road_map(self, screen: pygame.Surface) -> None:
         # Draw the road map
+        screen.fill((79,195,247))
         lane = pygame.image.load("client/assets/lane.jpg")
-        lane = pygame.transform.scale(lane, (601, 72))
-        car = pygame.image.load("client/assets/sprites/orange_car.png")
-        car = pygame.transform.scale(car, (64, 64))
-        for i in (0, 10):
-            screen.blit(lane, lane.get_rect(top = 75 + i * 72, left = 100, width = 601, height = 72))
-            screen.blit
+        lane = pygame.transform.scale(lane, (670, 57))
+        car_path = "client/assets/sprites/"
+        car_name = ["orange_car.png", "blue_car.png", "green-car.png", "red-car.png", "yellow_car.png", "purple_car.png", "lime_car.png", "pink_car.png", "black_car.png", "skin_car.png"]
+        car = [None] * 10
+        for i in range(0, 10):
+            car[i] = pygame.image.load(car_path + car_name[i])
+            car[i] = pygame.transform.scale(car[i], (50, 50))
+        for i in range(0, 10):
+            screen.blit(lane, lane.get_rect(top = 15 + i * 57, left = 15, width = 670, height = 57))
+        
+        tfont = pygame.font.Font("client/assets/Poppins-Regular.ttf", 14)
+        index = 0    
+        for name, player in self.players.items():
+            if (player[1] >= 0):
+                x = 15 + (670 - 60) * (player[1] / self.race_length)
+                screen.blit(car[index], car[index].get_rect(top = 18 + index * 57, left = x, width = 50, height = 50))
+                # write the nickname
+                textname = tfont.render(name, True, (129,212,250))
+                screen.blit(textname, textname.get_rect(top = 24 + index * 57, right = x - 2))
+                textscore = tfont.render(str(player[1]), True, (129,212,250))
+                screen.blit(textscore, textscore.get_rect(top = 39 + index * 57, right = x - 2))
+                
+            index += 1
 
     def init_map(self) -> None:
         pass
