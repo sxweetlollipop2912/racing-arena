@@ -325,7 +325,7 @@ class GameScene(Scene):
         # fixed size copied from draw_skeleton()
         outside_padding = 20
         outside_gap = 10
-        inside_padding = 10
+        inside_padding = 20
         inside_height = 480 - inside_padding * 2
         inside_width = (
             screen_width - 2 * outside_padding - outside_gap
@@ -338,20 +338,24 @@ class GameScene(Scene):
         )
 
         column_gap = 10
-        column_width = (inside_width - 2 * column_gap) / 3
+        column_2_width = 20
+        column_3_width = 20
+        column_1_width = (
+            (inside_width - 2 * column_gap) - column_2_width - column_3_width
+        )
         column_1_box_rect = pygame.Rect(
-            box_rect.left, box_rect.top, column_width, inside_height
+            box_rect.left, box_rect.top, column_1_width, inside_height
         )
         column_2_box_rect = pygame.Rect(
-            box_rect.left + column_width + column_gap,
+            column_1_box_rect.right + column_gap,
             box_rect.top,
-            column_width,
+            column_2_width,
             inside_height,
         )
         column_3_box_rect = pygame.Rect(
-            box_rect.left + 2 * column_width + 2 * column_gap,
+            column_2_box_rect.right + column_gap,
             box_rect.top,
-            column_width,
+            column_3_width,
             inside_height,
         )
 
@@ -371,24 +375,22 @@ class GameScene(Scene):
                     screen,
                     (125, 58, 6),
                     pygame.Rect(
-                        column_1_box_rect.left,
+                        column_1_box_rect.left - inside_padding / 2,
                         column_1_box_rect.top,
-                        inside_width,
+                        inside_width + inside_padding,
                         inside_height / 10,
                     ),
                 )
             player_name = self.body_font.render(
-                limit_text_width(f"{nickname}", column_width, self.label_font),
+                limit_text_width(f"{nickname}", column_1_width, strike_body_font),
                 True,
                 (230, 230, 230),
             )
             screen.blit(
                 player_name,
                 player_name.get_rect(
-                    center=(
-                        column_1_box_rect.centerx,
-                        column_1_box_rect.top + inside_height / 20,
-                    ),
+                    left=column_1_box_rect.left,
+                    centery=column_1_box_rect.top + inside_height / 20,
                 ),
             )
 
@@ -401,24 +403,22 @@ class GameScene(Scene):
                     screen,
                     (125, 58, 6),
                     pygame.Rect(
-                        column_1_box_rect.left,
+                        column_1_box_rect.left - inside_padding / 2,
                         column_1_box_rect.top,
-                        inside_width,
+                        inside_width + inside_padding,
                         inside_height / 10,
                     ),
                 )
             player_name = strike_body_font.render(
-                limit_text_width(f"{nickname}", column_width, self.label_font),
+                limit_text_width(f"{nickname}", column_1_width, strike_body_font),
                 True,
                 (135, 134, 134),
             )
             screen.blit(
                 player_name,
                 player_name.get_rect(
-                    center=(
-                        column_1_box_rect.centerx,
-                        column_1_box_rect.top + inside_height / 20,
-                    ),
+                    left=column_1_box_rect.left,
+                    centery=column_1_box_rect.top + inside_height / 20,
                 ),
             )
 
@@ -674,6 +674,9 @@ class GameScene(Scene):
         )
 
     def draw_game_over(self, screen: pygame.Surface) -> None:
+        screen.fill((0, 0, 0))
+        screen.blit(self.background, (0, 0))
+
         screen_width, screen_height = pygame.display.get_surface().get_size()
         if self.just_changed_state:
             self.answer_input.kill()
@@ -709,10 +712,31 @@ class GameScene(Scene):
         leaderboard_height = (
             slot_height * len(tops) + leaderboard_text_ui_element.get_rect().height
         )
+        leaderboard_width = max(400, announcement_ui_element.get_rect().width)
         padding_y = (
             screen_height
             - (announcement_ui_element.get_rect().height + 20 + leaderboard_height)
         ) // 2
+
+        leaderboard_padding = 30
+        leaderboard_surface = pygame.Surface(
+            (
+                leaderboard_width + 2 * leaderboard_padding,
+                announcement_ui_element.get_rect().height
+                + 20
+                + leaderboard_height
+                + 2 * leaderboard_padding,
+            )
+        )
+        leaderboard_surface.set_alpha(128)
+        leaderboard_surface.fill((25, 25, 25))
+        screen.blit(
+            leaderboard_surface,
+            leaderboard_surface.get_rect(
+                top=padding_y - leaderboard_padding,
+                centerx=screen_width // 2,
+            ),
+        )
 
         screen.blit(
             announcement_ui_element,
@@ -736,25 +760,34 @@ class GameScene(Scene):
             ),
         )
         leaderboard_rect.y += leaderboard_text_ui_element.get_rect().height
-        column_0_width = 20
+
         column_1_width = 100
-        column_2_width = 100
+        for nickname, _ in tops:
+            column_1_width = max(
+                column_1_width,
+                self.body_font.size(nickname)[0],
+            )
+        column_1_width = min(column_1_width, 200)
+
+        column_0_width = 25
+        column_2_width = 50
+        column_0_box_rect = pygame.Rect(
+            leaderboard_rect.centerx
+            - (column_0_width + column_1_width + column_2_width) // 2,
+            leaderboard_rect.top,
+            column_0_width,
+            leaderboard_rect.height,
+        )
         column_1_box_rect = pygame.Rect(
-            leaderboard_rect.centerx - column_1_width,
+            column_0_box_rect.right,
             leaderboard_rect.top,
             column_1_width,
             leaderboard_rect.height,
         )
         column_2_box_rect = pygame.Rect(
-            leaderboard_rect.centerx,
+            column_1_box_rect.right,
             leaderboard_rect.top,
             column_2_width,
-            leaderboard_rect.height,
-        )
-        column_0_box_rect = pygame.Rect(
-            column_1_box_rect.left - column_0_width,
-            leaderboard_rect.top,
-            column_0_width,
             leaderboard_rect.height,
         )
         for i, (nickname, score) in enumerate(tops):
@@ -802,8 +835,9 @@ class GameScene(Scene):
             )
 
     def draw_road_map(self, screen: pygame.Surface) -> None:
-        # Draw the road map
-        screen.fill((79, 195, 247))
+        screen.fill((0, 0, 0))
+        screen.blit(self.background, (0, 0))
+
         lane = pygame.image.load("client/assets/lane.jpg")
         lane = pygame.transform.scale(lane, (670, 57))
         car_path = "client/assets/sprites/"
@@ -829,6 +863,8 @@ class GameScene(Scene):
             )
 
         tfont = pygame.font.Font("client/assets/Poppins-Regular.ttf", 14)
+        tbfont = pygame.font.Font("client/assets/Poppins-Regular.ttf", 14)
+        tbfont.set_bold(True)
         index = 0
         for name, player in self.players.items():
             if player[1] >= 0:
@@ -840,11 +876,13 @@ class GameScene(Scene):
                     ),
                 )
                 # write the nickname
-                textname = tfont.render(name, True, (129, 212, 250))
+                textname = tbfont.render(
+                    limit_text_width(name, 75, tbfont), True, (230, 230, 230)
+                )
                 screen.blit(
                     textname, textname.get_rect(top=24 + index * 57, right=x - 2)
                 )
-                textscore = tfont.render(str(player[1]), True, (129, 212, 250))
+                textscore = tfont.render(f"{player[1]} pts", True, (230, 230, 230))
                 screen.blit(
                     textscore, textscore.get_rect(top=39 + index * 57, right=x - 2)
                 )
