@@ -93,7 +93,7 @@ class GameScene(Scene):
         )
         self.manager.get_theme().load_theme("client/assets/map_button.json")
         self.button_map = pygame_gui.elements.UIButton(
-            relative_rect=pygame.Rect((710, 20), (70, 70)),
+            relative_rect=pygame.Rect((710, 15), (70, 70)),
             text="MAP",
             manager=self.manager,
         )
@@ -184,8 +184,15 @@ class GameScene(Scene):
         self.current_state = new_state
         if new_state == InGameState.QUESTION:
             self.countdown.set_start_time(self.answer_time_limit)
+            self.answer_input.enable()
+            self.answer_input.set_text("")
+            self.answer_input.focus()
+            self.button_submit.enable()
         elif new_state == InGameState.SHOW_RESULT:
             self.countdown.set_start_time(self.prepare_time_limit)
+            self.answer_input.disable()
+            self.answer_input.set_text("")
+            self.button_submit.disable()
 
     def handle_question_command(self, args):
         round_index, first_number, operator, second_number = args
@@ -728,7 +735,7 @@ class GameScene(Scene):
                 + 2 * leaderboard_padding,
             )
         )
-        leaderboard_surface.set_alpha(128)
+        leaderboard_surface.set_alpha(220)
         leaderboard_surface.fill((25, 25, 25))
         screen.blit(
             leaderboard_surface,
