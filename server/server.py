@@ -4,15 +4,12 @@ from enum import Enum
 import logging
 from asyncio import StreamWriter, StreamReader
 from typing import Tuple, List, Dict, Optional
+import argparse
 
 from exceptions import RegistrationError, WrongStateError
 from player_manager import Player, PlayerManager
 from question_manager import Question, QuestionManager
 
-MAX_PLAYERS = 10
-MIN_PLAYERS = 2
-MAX_RACE_LENGTH = 25
-MIN_RACE_LENGTH = 4
 ANSWER_TIME_LIMIT = 10
 PREPARE_TIME_LIMIT = 3
 
@@ -88,7 +85,7 @@ class Game:
     def is_over(self) -> Tuple[bool, Optional[Player]]:
         is_over: bool = False
         qualified_players: List[Player] = self.player_manager.get_qualified_players()
-        if len(qualified_players) <= 1:
+        if len(qualified_players) == 0:
             is_over = True
         else:
             for player in qualified_players:
@@ -350,15 +347,44 @@ class ClientManager:
             writer.close()
 
 
-game: Game = Game(10, 10)
-client: ClientManager = ClientManager()
-address = ("localhost", 54321)
-loop = asyncio.get_event_loop()
-coro = asyncio.start_server(client.handle_conversation, *address)
-server = loop.run_until_complete(coro)
-print("Listening at {}".format(address))
-try:
-    loop.run_forever()
-finally:
-    server.close()
-    loop.close()
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Server for Racing Arena")
+    parser.add_argument(
+        "-p",
+        "--players",
+        type=int,
+        default=10,
+        help="Set the maximum number of players Default to 10.",
+    )
+    parser.add_argument(
+        "-r",
+        "--race-length",
+        type=int,
+        default=10,
+        help="Set the race length. Default to 10.",
+    )
+    parser.add_argument(
+        "-t",
+        "--time-answer",
+        type=int,
+        default=10,
+        help="Set the answer time limit. Default to 10 (seconds).",
+    )
+    args = parser.parse_args()
+
+    max_players = args.players
+    race_length = args.race_length
+    ANSWER_TIME_LIMIT = args.time_answer
+
+    game: Game = Game(max_players, race_length)
+    client: ClientManager = ClientManager()
+    address = ("localhost", 54321)
+    loop = asyncio.get_event_loop()
+    coro = asyncio.start_server(client.handle_conversation, *address)
+    server = loop.run_until_complete(coro)
+    print("Listening at {}".format(address))
+    try:
+        loop.run_forever()
+    finally:
+        server.close()
+        loop.close()

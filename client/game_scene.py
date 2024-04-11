@@ -360,11 +360,16 @@ class GameScene(Scene):
         )
 
         column_gap = 10
-        column_2_width = 20
-        column_3_width = 20
-        column_1_width = (
-            (inside_width - 2 * column_gap) - column_2_width - column_3_width
-        )
+        column_1_width = (inside_width - 2 * column_gap) - 40
+        for nickname, _ in self.players.items():
+            column_1_width = min(
+                column_1_width,
+                self.body_font.size(nickname)[0],
+            )
+        column_1_width = max(column_1_width, (inside_width - 2 * column_gap) / 3)
+        column_2_width = column_3_width = (
+            inside_width - column_1_width - 2 * column_gap
+        ) / 2
         column_1_box_rect = pygame.Rect(
             box_rect.left, box_rect.top, column_1_width, inside_height
         )
@@ -411,7 +416,7 @@ class GameScene(Scene):
             screen.blit(
                 player_name,
                 player_name.get_rect(
-                    left=column_1_box_rect.left,
+                    centerx=column_1_box_rect.centerx,
                     centery=column_1_box_rect.top + inside_height / 20,
                 ),
             )
@@ -439,7 +444,7 @@ class GameScene(Scene):
             screen.blit(
                 player_name,
                 player_name.get_rect(
-                    left=column_1_box_rect.left,
+                    centerx=column_1_box_rect.centerx,
                     centery=column_1_box_rect.top + inside_height / 20,
                 ),
             )

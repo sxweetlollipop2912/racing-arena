@@ -58,7 +58,8 @@ class PlayerManager:
         return player
 
     def remove_player(self, nickname: str) -> None:
-        del self.players[nickname]
+        if nickname in self.players:
+            del self.players[nickname]
 
     def disqualify_players(self) -> List[Player]:
         disqualified_players: List[Player] = []
