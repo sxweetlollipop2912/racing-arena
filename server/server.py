@@ -240,10 +240,12 @@ class ClientManager:
     async def write_to_player(self, nickname: str, message: str) -> None:
         if nickname not in game.player_manager.players:
             return
-        byte_message: bytes = (message + "\n").encode()
-        writer: asyncio.StreamWriter = game.player_manager.players[nickname].writer
-        writer.write(byte_message)
-        await writer.drain()
+        player = game.player_manager.players.get(nickname)
+        if player and player.writer:
+            byte_message: bytes = (message + "\n").encode()
+            writer: asyncio.StreamWriter = player.writer
+            writer.write(byte_message)
+            await writer.drain()
 
     async def handle_conversation(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
@@ -330,10 +332,21 @@ class ClientManager:
                 await writer.drain()
         except ConnectionResetError as e:
             LOGGER.info(f"[Client Thread] Connection reset by peer, address {address}.")
+        except Exception as e:
+            LOGGER.info(
+                f"[Client Thread] Exception occurred with peer connection, address {address}: {str(e)}."
+            )
         finally:
-            nickname: str = self.clients[writer]
-            del self.clients[writer]
+            LOGGER.info(f"[Client Thread] Closing connection with {address}.")
+            if writer in self.clients:
+                nickname: str = self.clients[writer]
+                del self.clients[writer]
             await game.handle_disconnection(nickname)
+
+            player = game.player_manager.players.get(nickname)
+            if player:
+                player.writer = None
+
             writer.close()
 
 
