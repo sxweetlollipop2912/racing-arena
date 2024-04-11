@@ -24,7 +24,7 @@ def game_loop() -> None:
         for event in ui_events:
             if event.type == pygame.QUIT:
                 pygame.quit()
-                return
+                raise SystemExit
 
         scene_manager.process_input(ui_events)
         scene_manager.update(clock.tick(60) / 1000.0)
@@ -33,11 +33,17 @@ def game_loop() -> None:
         pygame.display.flip()
 
 
-loop = asyncio.new_event_loop()
-asyncio.run_coroutine_threadsafe(
-    connection.handle_conversation("localhost", 54321), loop
-)
-game_thread = threading.Thread(target=loop.run_forever)
-game_thread.start()
-
-game_loop()
+if __name__ == "__main__":
+    loop = asyncio.new_event_loop()
+    asyncio.run_coroutine_threadsafe(
+        connection.handle_conversation("localhost", 54321), loop
+    )
+    game_thread = threading.Thread(target=loop.run_forever)
+    game_thread.start()
+    try:
+        game_loop()
+    except SystemExit:
+        # terminate the thread
+        loop.call_soon_threadsafe(loop.stop)
+        game_thread.join()
+        LOGGER.info("Client closed")
