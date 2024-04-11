@@ -597,7 +597,10 @@ class GameScene(Scene):
                 )
                 screen.blit(
                     answer_error_ui_element,
-                    answer_error_ui_element.get_rect(left=350, top=485),
+                    answer_error_ui_element.get_rect(
+                        bottom=right_box.bottom - inner_padding,
+                        centerx=right_box.centerx,
+                    ),
                 )
 
             if self.answer_success:
@@ -608,7 +611,10 @@ class GameScene(Scene):
                 )
                 screen.blit(
                     answer_success_ui_element,
-                    answer_success_ui_element.get_rect(left=350, top=485),
+                    answer_success_ui_element.get_rect(
+                        bottom=right_box.bottom - inner_padding,
+                        centerx=right_box.centerx,
+                    ),
                 )
 
         elif self.just_changed_state:
@@ -686,12 +692,114 @@ class GameScene(Scene):
             True,
             (255, 255, 255),
         )
+
+        tops = []
+        for nickname, (_, score) in self.players.items():
+            if score >= 0:
+                tops.append((nickname, score))
+        tops.sort(key=lambda x: x[1], reverse=True)
+        tops = tops[:5]
+
+        leaderboard_text_ui_element = self.label_font.render(
+            "Leaderboard",
+            True,
+            (255, 255, 255),
+        )
+        slot_height = 40
+        leaderboard_height = (
+            slot_height * len(tops) + leaderboard_text_ui_element.get_rect().height
+        )
+        padding_y = (
+            screen_height
+            - (announcement_ui_element.get_rect().height + 20 + leaderboard_height)
+        ) // 2
+
         screen.blit(
             announcement_ui_element,
             announcement_ui_element.get_rect(
-                center=(screen_width / 2, screen_height / 2)
+                top=padding_y,
+                centerx=screen_width // 2,
             ),
         )
+
+        leaderboard_rect = pygame.Rect(
+            0,
+            padding_y + announcement_ui_element.get_rect().height + 20,
+            screen_width,
+            leaderboard_height,
+        )
+        screen.blit(
+            leaderboard_text_ui_element,
+            leaderboard_text_ui_element.get_rect(
+                top=leaderboard_rect.top,
+                centerx=leaderboard_rect.centerx,
+            ),
+        )
+        leaderboard_rect.y += leaderboard_text_ui_element.get_rect().height
+        column_0_width = 20
+        column_1_width = 100
+        column_2_width = 100
+        column_1_box_rect = pygame.Rect(
+            leaderboard_rect.centerx - column_1_width,
+            leaderboard_rect.top,
+            column_1_width,
+            leaderboard_rect.height,
+        )
+        column_2_box_rect = pygame.Rect(
+            leaderboard_rect.centerx,
+            leaderboard_rect.top,
+            column_2_width,
+            leaderboard_rect.height,
+        )
+        column_0_box_rect = pygame.Rect(
+            column_1_box_rect.left - column_0_width,
+            leaderboard_rect.top,
+            column_0_width,
+            leaderboard_rect.height,
+        )
+        for i, (nickname, score) in enumerate(tops):
+            player_rank = self.body_font.render(
+                f"{i + 1}.",
+                True,
+                (230, 230, 230),
+            )
+            screen.blit(
+                player_rank,
+                player_rank.get_rect(
+                    center=(
+                        column_0_box_rect.centerx,
+                        column_0_box_rect.top + i * slot_height + slot_height // 2,
+                    ),
+                ),
+            )
+            player_name = self.body_font.render(
+                limit_text_width(f"{nickname}", column_1_width, self.body_font),
+                True,
+                (230, 230, 230),
+            )
+            screen.blit(
+                player_name,
+                player_name.get_rect(
+                    center=(
+                        column_1_box_rect.centerx,
+                        column_1_box_rect.top + i * slot_height + slot_height // 2,
+                    ),
+                ),
+            )
+            player_score = self.body_font.render(
+                f"{score}",
+                True,
+                (230, 230, 230),
+            )
+            screen.blit(
+                player_score,
+                player_score.get_rect(
+                    center=(
+                        column_2_box_rect.centerx,
+                        column_2_box_rect.top + i * slot_height + slot_height // 2,
+                    ),
+                ),
+            )
 
     def draw_road_map(self, screen: pygame.Surface) -> None:
         # Draw the road map
