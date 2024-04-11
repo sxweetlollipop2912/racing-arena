@@ -56,6 +56,10 @@ ANSWER_CORRECT;<correct answer>
 Response:
 ANSWER_INCORRECT;<correct answer>
 
+-- SERVER: ANSWER FOR DISQUALIFIED PLAYER --
+Response:
+ANSWER;<correct answer>
+
 -- SERVER: BROADCAST ROUND SCORE --
 Broadcast:
 DISQUALIFICATION;<nickname 1>;...;<nickname n>

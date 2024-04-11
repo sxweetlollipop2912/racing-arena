@@ -14,6 +14,7 @@ MIN_PLAYERS = 2
 MAX_RACE_LENGTH = 25
 MIN_RACE_LENGTH = 4
 ANSWER_TIME_LIMIT = 10
+PREPARE_TIME_LIMIT = 3
 
 logging.basicConfig(
     level=logging.INFO,
@@ -57,7 +58,7 @@ class Game:
             # Start the game
             self.state = GameState.PROCESSING
             await client.broadcast(
-                f"GAME_STARTING;{self.race_length};{ANSWER_TIME_LIMIT}"
+                f"GAME_STARTING;{self.race_length};{ANSWER_TIME_LIMIT};{PREPARE_TIME_LIMIT}"
             )
             asyncio.create_task(game.game_loop())
 
@@ -121,6 +122,9 @@ class Game:
             for player in self.player_manager.get_qualified_players():
                 player.reset_new_round()
 
+            self.state = GameState.PROCESSING
+            await asyncio.sleep(PREPARE_TIME_LIMIT)
+
             question: Question = self.question_manager.generate_question()
             LOGGER.info(
                 f"[Game Thread] Question #{round_index}: {question.first_number} {question.operator} {question.second_number} = {question.answer}."
@@ -140,38 +144,42 @@ class Game:
             # Process the answers and update the scores
             fastest_player: Optional[Player] = None
             fastest_bonus: int = 0
-            for player in self.player_manager.get_qualified_players():
-                nickname: str = player.nickname
-                answer: Optional[int] = player.answer
+            for player in self.player_manager.players.values():
+                if not player.is_disqualified:
+                    nickname: str = player.nickname
+                    answer: Optional[int] = player.answer
 
-                if self.question_manager.check_player_answer(question, answer):
-                    # Correct answer
-                    player.update_state(1)
-                    player.wa_streak = 0
+                    if self.question_manager.check_player_answer(question, answer):
+                        # Correct answer
+                        player.update_state(1)
+                        player.wa_streak = 0
 
-                    await client.write_to_player(
-                        nickname, f"ANSWER_CORRECT;{question.answer}"
-                    )
-                    if (
-                        fastest_player is None
-                        or player.answer_time < fastest_player.answer_time
-                    ):
-                        fastest_player = player
-                    LOGGER.info(
-                        f"[Game Thread] {nickname} answered correctly, position: {player.position}."
-                    )
+                        await client.write_to_player(
+                            nickname, f"ANSWER_CORRECT;{question.answer}"
+                        )
+                        if (
+                            fastest_player is None
+                            or player.answer_time < fastest_player.answer_time
+                        ):
+                            fastest_player = player
+                        LOGGER.info(
+                            f"[Game Thread] {nickname} answered correctly, position: {player.position}."
+                        )
+                    else:
+                        # Incorrect answer
+                        player.update_state(-1)
+                        player.wa_streak += 1
+
+                        fastest_bonus += 1
+                        await client.write_to_player(
+                            nickname, f"ANSWER_INCORRECT;{question.answer}"
+                        )
+                        LOGGER.info(
+                            f"[Game Thread] {nickname} answered incorrectly, position: {player.position}."
+                        )
                 else:
-                    # Incorrect answer
-                    player.update_state(-1)
-                    player.wa_streak += 1
-
-                    fastest_bonus += 1
-                    await client.write_to_player(
-                        nickname, f"ANSWER_INCORRECT;{question.answer}"
-                    )
-                    LOGGER.info(
-                        f"[Game Thread] {nickname} answered incorrectly, position: {player.position}."
-                    )
+                    nickname: str = player.nickname
+                    await client.write_to_player(nickname, f"ANSWER;{question.answer}")
 
             # Add bonus score for the fastest player
             if fastest_player is not None:
@@ -197,7 +205,9 @@ class Game:
 
             # Send the updated scores to all clients
             scores: str = self.player_manager.pack_players_round_info()
-            fastest_player_nickname = fastest_player.nickname if fastest_player else None
+            fastest_player_nickname = (
+                fastest_player.nickname if fastest_player else None
+            )
             await client.broadcast(f"SCORES;{fastest_player_nickname or ''};{scores}")
             # TODO: Wait for a few seconds before starting the next round
 
@@ -329,7 +339,7 @@ class ClientManager:
             writer.close()
 
 
-game: Game = Game(10, 5)
+game: Game = Game(10, 10)
 client: ClientManager = ClientManager()
 address = ("localhost", 54321)
 loop = asyncio.get_event_loop()

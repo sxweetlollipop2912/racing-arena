@@ -14,7 +14,6 @@ connection = ConnectionManager()
 
 
 class LobbyScene(Scene):
-
     def __init__(self, players: List[Player] = []):
         super().__init__()
         self.players = players
@@ -22,7 +21,7 @@ class LobbyScene(Scene):
         self.manager.get_theme().load_theme("client/assets/ready_button.json")
         self.background = pygame.image.load("client/assets/wallpaper.jpg")
         self.button_ready = pygame_gui.elements.UIButton(
-            relative_rect=pygame.Rect((330, 540), (150, 50)),
+            relative_rect=pygame.Rect((330, 530), (150, 50)),
             text="READY",
             manager=self.manager,
         )
@@ -91,11 +90,15 @@ class LobbyScene(Scene):
                         if player.nickname == args[0]:
                             self.players.remove(player)
                 elif command == "GAME_STARTING":
-                    race_length, answer_time_limit = args
+                    race_length, answer_time_limit, prepare_time_limit = args
+                    answer_time_limit = int(answer_time_limit)
+                    prepare_time_limit = int(prepare_time_limit)
                     next_scene = GameScene()
-                    next_scene.players = {nickname: (0, 0) for nickname in self.players}
-                    next_scene.race_length = race_length
+                    next_scene.players = {player.nickname: [0, 1] for player in self.players}
+                    next_scene.race_length = int(race_length)
                     next_scene.answer_time_limit = answer_time_limit
+                    next_scene.prepare_time_limit = prepare_time_limit
+                    next_scene.countdown.set_start_time(prepare_time_limit)
                     return next_scene
         except queue.Empty:
             pass
@@ -122,7 +125,6 @@ class LobbyScene(Scene):
 
         status_box_width = 150
         status_box_height = 41
-        status_box_color = (20, 20, 20)
 
         for i, player in enumerate(self.players):
             # Draw the player box
