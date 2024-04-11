@@ -1,4 +1,3 @@
-# TODO: Show scores, countdown
 import re
 import pygame
 import pygame_gui
@@ -22,6 +21,7 @@ class InGameState(Enum):
     SHOW_RESULT = 2
     GAME_OVER = 3
     # ROAD_MAP = 4
+
 
 class Countdown:
     def __init__(self, start_time: float):
@@ -199,19 +199,16 @@ class GameScene(Scene):
 
     def handle_answer_correct_command(self, args):
         answer = args[0]
-        # TODO, make the result not out of the box
         self.result_text = f"Correct! The answer is {answer}"
         self.switch_state(InGameState.SHOW_RESULT)
 
     def handle_answer_incorrect_command(self, args):
         answer = args[0]
-        # TODO, make the result not out of the box
         self.result_text = f"Incorrect! The answer is {answer}"
         self.switch_state(InGameState.SHOW_RESULT)
 
     def handle_answer_disqualified_command(self, args):
         answer = args[0]
-        # TODO, make the result not out of the box
         self.result_text = f"The answer is {answer}"
         self.switch_state(InGameState.SHOW_RESULT)
 
@@ -294,8 +291,16 @@ class GameScene(Scene):
         )
 
     def draw_leaderboard(self, screen: pygame.Surface) -> None:
-        qualified_players = [(nickname, self.players[nickname]) for nickname in self.players if self.players[nickname][1] >= 0]
-        disqualified_players = [(nickname, self.players[nickname]) for nickname in self.players if self.players[nickname][1] < 0]
+        qualified_players = [
+            (nickname, self.players[nickname])
+            for nickname in self.players
+            if self.players[nickname][1] >= 0
+        ]
+        disqualified_players = [
+            (nickname, self.players[nickname])
+            for nickname in self.players
+            if self.players[nickname][1] < 0
+        ]
         qualified_players.sort(key=lambda x: x[1][1], reverse=True)
 
         # mock data
@@ -475,15 +480,26 @@ class GameScene(Scene):
                     ),
                 ),
             )
-    
+
     def draw_lane(self, screen: pygame.Surface) -> None:
         # Draw the lane
         lane = pygame.image.load("client/assets/lane.jpg")
         lane = pygame.transform.scale(lane, (690, 80))
-        screen.blit(lane, lane.get_rect(top = 10, left = 20, width = 690, height = 90))
-        
+        screen.blit(lane, lane.get_rect(top=10, left=20, width=690, height=90))
+
         # Draw the car
-        car_name = ["orange_car.png", "blue_car.png", "green-car.png", "red-car.png", "yellow_car.png", "purple_car.png", "lime_car.png", "pink_car.png", "black_car.png", "skin_car.png"]
+        car_name = [
+            "orange_car.png",
+            "blue_car.png",
+            "green-car.png",
+            "red-car.png",
+            "yellow_car.png",
+            "purple_car.png",
+            "lime_car.png",
+            "pink_car.png",
+            "black_car.png",
+            "skin_car.png",
+        ]
         index = 0
         for nickname in self.players.keys():
             if nickname == globals.current_nickname:
@@ -494,9 +510,8 @@ class GameScene(Scene):
         # get car top (x position)
         player = self.players[globals.current_nickname]
         x = 20 + (690 - 60) * (player[1] / self.race_length)
-        screen.blit(car, car.get_rect(top = 18, left = x, width = 64, height = 64))
-        
-        
+        screen.blit(car, car.get_rect(top=18, left=x, width=64, height=64))
+
     def draw(self, screen: pygame.Surface) -> None:
         screen_width, screen_height = pygame.display.get_surface().get_size()
         if self.show_map:
@@ -523,8 +538,18 @@ class GameScene(Scene):
 
     def draw_question(self, screen: pygame.Surface) -> None:
         screen_width, screen_height = pygame.display.get_surface().get_size()
+        padding = 20
+        height = 480
+        gap = 10
+        left_box_width = (screen_width - 2 * padding - gap) / 3
+        right_box_width = 2 * left_box_width
+        box_height = height
+        right_box = pygame.Rect(
+            padding + left_box_width + gap, 200, right_box_width, box_height - 160
+        )
+        inner_padding = 10
+
         if self.announcement_text:
-            # TODO: adjust the position of the announcement
             announcement_ui_element = self.disqualified_font.render(
                 self.announcement_text,
                 True,
@@ -532,7 +557,10 @@ class GameScene(Scene):
             )
             screen.blit(
                 announcement_ui_element,
-                announcement_ui_element.get_rect(left=320, top=screen_height / 2 - 60),
+                announcement_ui_element.get_rect(
+                    top=right_box.top + inner_padding,
+                    centerx=right_box.centerx,
+                ),
             )
         question_number_ui_element = self.label_font.render(
             self.question_number_text,
@@ -550,7 +578,9 @@ class GameScene(Scene):
         )
         screen.blit(
             question_ui_element,
-            question_ui_element.get_rect(left=320, top=screen_height / 2 + 40),
+            question_ui_element.get_rect(
+                center=right_box.center,
+            ),
         )
         if not self.is_disqualified:
             if self.just_changed_state:
@@ -587,12 +617,22 @@ class GameScene(Scene):
 
     def draw_show_results(self, screen: pygame.Surface) -> None:
         screen_width, screen_height = pygame.display.get_surface().get_size()
+        padding = 20
+        height = 480
+        gap = 10
+        left_box_width = (screen_width - 2 * padding - gap) / 3
+        right_box_width = 2 * left_box_width
+        box_height = height
+        right_box = pygame.Rect(
+            padding + left_box_width + gap, 200, right_box_width, box_height - 160
+        )
+        inner_padding = 10
+
         if self.just_changed_state:
             self.answer_input.disable()
             self.button_submit.disable()
 
         if self.announcement_text:
-            # TODO: adjust the position of the announcement
             announcement_ui_element = self.disqualified_font.render(
                 self.announcement_text,
                 True,
@@ -600,7 +640,10 @@ class GameScene(Scene):
             )
             screen.blit(
                 announcement_ui_element,
-                announcement_ui_element.get_rect(left=320, top=screen_height / 2 - 60),
+                announcement_ui_element.get_rect(
+                    top=right_box.top + inner_padding,
+                    centerx=right_box.centerx,
+                ),
             )
 
         result_number_ui_element = self.label_font.render(
@@ -619,7 +662,9 @@ class GameScene(Scene):
         )
         screen.blit(
             result_ui_element,
-            result_ui_element.get_rect(left=320, top=screen_height / 2 + 40),
+            result_ui_element.get_rect(
+                center=right_box.center,
+            ),
         )
 
     def draw_game_over(self, screen: pygame.Surface) -> None:
@@ -630,7 +675,7 @@ class GameScene(Scene):
             self.button_map.kill()
             self.button_submit = pygame_gui.elements.UIButton(
                 relative_rect=pygame.Rect((screen_width / 2 - 75, 515), (150, 50)),
-                text="PLAY AGAIN?",
+                text="PLAY AGAIN",
                 manager=self.manager,
             )
             self.button_submit.enable()
@@ -647,33 +692,55 @@ class GameScene(Scene):
                 center=(screen_width / 2, screen_height / 2)
             ),
         )
-        
+
     def draw_road_map(self, screen: pygame.Surface) -> None:
         # Draw the road map
-        screen.fill((79,195,247))
+        screen.fill((79, 195, 247))
         lane = pygame.image.load("client/assets/lane.jpg")
         lane = pygame.transform.scale(lane, (670, 57))
         car_path = "client/assets/sprites/"
-        car_name = ["orange_car.png", "blue_car.png", "green-car.png", "red-car.png", "yellow_car.png", "purple_car.png", "lime_car.png", "pink_car.png", "black_car.png", "skin_car.png"]
+        car_name = [
+            "orange_car.png",
+            "blue_car.png",
+            "green-car.png",
+            "red-car.png",
+            "yellow_car.png",
+            "purple_car.png",
+            "lime_car.png",
+            "pink_car.png",
+            "black_car.png",
+            "skin_car.png",
+        ]
         car = [None] * 10
         for i in range(0, 10):
             car[i] = pygame.image.load(car_path + car_name[i])
             car[i] = pygame.transform.scale(car[i], (50, 50))
         for i in range(0, 10):
-            screen.blit(lane, lane.get_rect(top = 15 + i * 57, left = 15, width = 670, height = 57))
-        
+            screen.blit(
+                lane, lane.get_rect(top=15 + i * 57, left=15, width=670, height=57)
+            )
+
         tfont = pygame.font.Font("client/assets/Poppins-Regular.ttf", 14)
-        index = 0    
+        index = 0
         for name, player in self.players.items():
-            if (player[1] >= 0):
+            if player[1] >= 0:
                 x = 15 + (670 - 60) * (player[1] / self.race_length)
-                screen.blit(car[index], car[index].get_rect(top = 18 + index * 57, left = x, width = 50, height = 50))
+                screen.blit(
+                    car[index],
+                    car[index].get_rect(
+                        top=18 + index * 57, left=x, width=50, height=50
+                    ),
+                )
                 # write the nickname
-                textname = tfont.render(name, True, (129,212,250))
-                screen.blit(textname, textname.get_rect(top = 24 + index * 57, right = x - 2))
-                textscore = tfont.render(str(player[1]), True, (129,212,250))
-                screen.blit(textscore, textscore.get_rect(top = 39 + index * 57, right = x - 2))
-                
+                textname = tfont.render(name, True, (129, 212, 250))
+                screen.blit(
+                    textname, textname.get_rect(top=24 + index * 57, right=x - 2)
+                )
+                textscore = tfont.render(str(player[1]), True, (129, 212, 250))
+                screen.blit(
+                    textscore, textscore.get_rect(top=39 + index * 57, right=x - 2)
+                )
+
             index += 1
 
     def init_map(self) -> None:

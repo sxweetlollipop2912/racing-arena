@@ -17,14 +17,30 @@ class Question:
 
 class QuestionManager:
     def __init__(self):
-        self.operators: List[str] = ["+", "-", "*", "/", "%"]
+        # TODO
+        # self.operators: List[str] = ["+", "-", "*", "/", "%"]
+        self.operators: List[str] = ["+"]
 
     def generate_question(self) -> Question:
-        # first_number: int = random.randint(-10000, 10000)
-        # second_number: int = random.randint(-10000, 10000)
-        first_number: int = random.randint(1, 8)
-        second_number: int = random.randint(1, 8)
+        # TODO
+        # lrange = -10000
+        # rrange = 10000
+        lrange = 1
+        rrange = 8
         operator: str = random.choice(self.operators)
+        if operator == "/":
+            second_number = 0
+            while second_number == 0:
+                second_number = random.randint(lrange, rrange)
+            first_number = second_number * random.randint(lrange, rrange)
+        elif operator == "%":
+            second_number = 0
+            while second_number == 0:
+                second_number = random.randint(lrange, rrange)
+            first_number = random.randint(lrange, rrange)
+        else:
+            first_number = random.randint(lrange, rrange)
+            second_number = random.randint(lrange, rrange)
 
         answer: int = 0
         if operator == "+":
@@ -34,7 +50,6 @@ class QuestionManager:
         elif operator == "*":
             answer = first_number * second_number
         elif operator == "/":
-            # TODO: What if the second number is 0?
             answer = first_number // second_number
         elif operator == "%":
             answer = first_number % second_number

@@ -34,7 +34,9 @@ def game_loop() -> None:
 
 
 loop = asyncio.new_event_loop()
-asyncio.run_coroutine_threadsafe(connection.handle_conversation("localhost", 54321), loop)
+asyncio.run_coroutine_threadsafe(
+    connection.handle_conversation("localhost", 54321), loop
+)
 game_thread = threading.Thread(target=loop.run_forever)
 game_thread.start()
 

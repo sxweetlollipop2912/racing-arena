@@ -136,7 +136,6 @@ class Game:
             self.state = GameState.WAITING_FOR_ANSWERS
             LOGGER.info("[Game Thread] State changed: WAITING_FOR_ANSWERS.")
             # Wait for the clients to answer
-            # TODO: What if all players answered before the time limit?
             await asyncio.sleep(ANSWER_TIME_LIMIT)
 
             self.state = GameState.PROCESSING
@@ -209,7 +208,6 @@ class Game:
                 fastest_player.nickname if fastest_player else None
             )
             await client.broadcast(f"SCORES;{fastest_player_nickname or ''};{scores}")
-            # TODO: Wait for a few seconds before starting the next round
 
             # Check if the game is over
             is_over: bool

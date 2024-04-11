@@ -13,6 +13,7 @@ from player import Player
 
 connection = ConnectionManager()
 
+
 class RegistrationScene(Scene):
     def __init__(self):
         super().__init__()
@@ -89,13 +90,14 @@ class RegistrationScene(Scene):
                             return None
                         else:
                             loop = asyncio.new_event_loop()
-                            loop.run_until_complete(connection.send_registration(username))
-                            
+                            loop.run_until_complete(
+                                connection.send_registration(username)
+                            )
+
         try:
-            while (message := messages.get(block=False)):
+            while message := messages.get(block=False):
                 command, args = message
                 if command == "REGISTRATION_SUCCESS":
-                    # TODO: Send to LobbyScene the list of current players in lobby
                     players: List[Player] = []
                     for player_str in args:
                         nickname, is_ready = player_str.split(",")
@@ -103,7 +105,9 @@ class RegistrationScene(Scene):
                     return LobbyScene(players)
                 elif command == "REGISTRATION_FAILURE":
                     globals.current_nickname = None
-                    self.error_message = self.body_font.render(args[0], True, (200, 0, 0))
+                    self.error_message = self.body_font.render(
+                        args[0], True, (200, 0, 0)
+                    )
         except queue.Empty:
             pass
 
