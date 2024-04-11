@@ -46,6 +46,21 @@ class GameScene(Scene):
 
     def __init__(self):
         super().__init__()
+        self.car_name = [
+            "orange_car.png",
+            "blue_car.png",
+            "green-car.png",
+            "red-car.png",
+            "yellow_car.png",
+            "purple_car.png",
+            "lime_car.png",
+            "pink_car.png",
+            "black_car.png",
+            "skin_car.png",
+        ]
+        import random
+
+        random.shuffle(self.car_name)
         self.countdown = Countdown(5.0)
         self.background = pygame.image.load("client/assets/wallpaper.jpg")
         self.race_length = 0
@@ -495,18 +510,7 @@ class GameScene(Scene):
         screen.blit(lane, lane.get_rect(top=10, left=20, width=690, height=90))
 
         # Draw the car
-        car_name = [
-            "orange_car.png",
-            "blue_car.png",
-            "green-car.png",
-            "red-car.png",
-            "yellow_car.png",
-            "purple_car.png",
-            "lime_car.png",
-            "pink_car.png",
-            "black_car.png",
-            "skin_car.png",
-        ]
+        car_name = self.car_name
         index = 0
         for nickname in self.players.keys():
             if nickname == globals.current_nickname:
@@ -848,18 +852,7 @@ class GameScene(Scene):
         lane = pygame.image.load("client/assets/lane.jpg")
         lane = pygame.transform.scale(lane, (670, 57))
         car_path = "client/assets/sprites/"
-        car_name = [
-            "orange_car.png",
-            "blue_car.png",
-            "green-car.png",
-            "red-car.png",
-            "yellow_car.png",
-            "purple_car.png",
-            "lime_car.png",
-            "pink_car.png",
-            "black_car.png",
-            "skin_car.png",
-        ]
+        car_name = self.car_name
         car = [None] * 10
         for i in range(0, 10):
             car[i] = pygame.image.load(car_path + car_name[i])
