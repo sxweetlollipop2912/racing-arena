@@ -15,3 +15,12 @@ To run the client, execute the following command:
 ```bash
 make cli
 ```
+
+## Build the game binary
+
+Require `pyinstaller` to build the binary.
+
+```bash
+make build-cli # to build the client
+make build-ser # to build the server
+```
