@@ -1,4 +1,5 @@
 import random
+import math
 from typing import List
 
 
@@ -29,7 +30,7 @@ class QuestionManager:
             second_number = 0
             while second_number == 0:
                 second_number = random.randint(lrange, rrange)
-            first_number = second_number * random.randint(lrange, rrange)
+            first_number = second_number * random.randint(math.ceil(lrange/second_number), math.floor(rrange/second_number))
         elif operator == "%":
             second_number = 0
             while second_number == 0:

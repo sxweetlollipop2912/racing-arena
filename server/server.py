@@ -10,8 +10,8 @@ from exceptions import RegistrationError, WrongStateError
 from player_manager import Player, PlayerManager
 from question_manager import Question, QuestionManager
 
-ANSWER_TIME_LIMIT = 10
-PREPARE_TIME_LIMIT = 3
+ANSWER_TIME_LIMIT = 30
+PREPARE_TIME_LIMIT = 10
 
 logging.basicConfig(
     level=logging.INFO,
@@ -383,8 +383,8 @@ if __name__ == "__main__":
         "-t",
         "--time-answer",
         type=int,
-        default=10,
-        help="Set the answer time limit. Default to 10 (seconds).",
+        default=ANSWER_TIME_LIMIT,
+        help=f"Set the answer time limit. Default to {ANSWER_TIME_LIMIT} (seconds).",
     )
     args = parser.parse_args()
 
