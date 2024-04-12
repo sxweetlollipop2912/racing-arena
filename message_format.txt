@@ -35,7 +35,7 @@ PLAYER_LEFT;<nickname>
 
 -- SERVER: GAME_START --
 Broadcast:
-GAME_STARTING;<race_length>;<answer time limit>
+GAME_STARTING;<race_length>;<answer time limit>;<prepare_time_limit>
 
 -- SERVER: NEW QUESTION --
 Broadcast:

@@ -265,6 +265,10 @@ class ClientManager:
                 )
 
                 if command == "REGISTER":
+                    if len(args) != 1:
+                        writer.write(b"REGISTRATION_FAILURE;Invalid arguments.\n")
+                        continue
+
                     # Parse message data
                     nickname: str = args[0].strip()
 
@@ -289,6 +293,10 @@ class ClientManager:
                         writer.write(f"REGISTRATION_FAILURE;{str(e)}\n".encode())
 
                 elif command == "READY":
+                    if len(args) != 0:
+                        writer.write(b"READY_FAILURE;Invalid arguments.\n")
+                        continue
+
                     try:
                         # Handle command
                         nickname: str = self.clients[writer]
@@ -301,6 +309,10 @@ class ClientManager:
                         writer.write(f"READY_FAILURE;{str(e)}\n".encode())
 
                 elif command == "UNREADY":
+                    if len(args) != 0:
+                        writer.write(b"UNREADY_FAILURE;Invalid arguments.\n")
+                        continue
+
                     try:
                         # Handle command
                         nickname: str = self.clients[writer]
@@ -313,6 +325,10 @@ class ClientManager:
                         writer.write(f"UNREADY_FAILURE;{str(e)}\n".encode())
 
                 elif command == "ANSWER":
+                    if len(args) != 1:
+                        writer.write(b"ANSWER_FAILURE;Invalid arguments.\n")
+                        continue
+
                     try:
                         player_answer: int = int(args[0].strip())
 

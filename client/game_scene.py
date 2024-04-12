@@ -212,26 +212,24 @@ class GameScene(Scene):
     def handle_question_command(self, args):
         round_index, first_number, operator, second_number = args
         self.question_text = f"{first_number} {operator} {second_number} = ?"
-        self.question_number_text = (
-            f"Question #{round_index.zfill(2)}/{self.race_length}"
-        )
+        self.question_number_text = f"Question #{round_index.zfill(2)}"
         self.answer_error = None
         self.answer_success = None
         self.switch_state(InGameState.QUESTION)
 
     def handle_answer_correct_command(self, args):
         answer = args[0]
-        self.result_text = f"Correct! The answer is {answer}"
+        self.result_text = f"Correct! It's {answer}!"
         self.switch_state(InGameState.SHOW_RESULT)
 
     def handle_answer_incorrect_command(self, args):
         answer = args[0]
-        self.result_text = f"Incorrect! The answer is {answer}"
+        self.result_text = f"Incorrect! It's {answer}!"
         self.switch_state(InGameState.SHOW_RESULT)
 
     def handle_answer_disqualified_command(self, args):
         answer = args[0]
-        self.result_text = f"The answer is {answer}"
+        self.result_text = f"It's {answer}!"
         self.switch_state(InGameState.SHOW_RESULT)
 
     def handle_answer_failure_command(self, args):
