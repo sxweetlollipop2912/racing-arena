@@ -20,11 +20,10 @@ class QuestionManager:
         self.operators: List[str] = ["+", "-", "*", "/", "%"]
 
     def generate_question(self) -> Question:
-        # TODO
-        # lrange = -10000
-        # rrange = 10000
-        lrange = 1
-        rrange = 8
+        lrange = -10000
+        rrange = 10000
+        # lrange = 1
+        # rrange = 8
         operator: str = random.choice(self.operators)
         if operator == "/":
             second_number = 0
