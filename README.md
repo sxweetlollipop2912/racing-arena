@@ -2,6 +2,8 @@
 
 A simple multiplayer racing game using with TCP sockets via Python asyncio.
 
+Detailed report on protocol, scrreenshots, video demo, storyline etc. in [/report.pdf](https://github.com/sxweetlollipop2912/racing-arena/blob/main/report.pdf).
+
 ## Running the game
 
 To run the server, execute the following command:
